@@ -74,6 +74,81 @@ flowchart LR
 
 ---
 
+## 作者自检脚本（合并前 5 分钟）
+
+```bash
+# 类型 + 规范
+pnpm vue-tsc --noEmit && pnpm lint
+
+# 单元 + 冒烟 E2E
+pnpm test:run
+pnpm exec playwright test --grep @smoke
+
+# 国际化：检出硬编码中文（按团队 locale 调整）
+rg '[\u4e00-\u9fff]{2,}' src/ --glob '*.vue' --glob '!**/locales/**'
+
+# 安全：裸 v-html
+rg 'v-html' --glob '*.vue' -n
+
+# 危险协议
+rg 'javascript:|data:text/html' src/
+```
+
+---
+
+## CI 自动化门禁
+
+| 检查 | 工具 | 说明 |
+|------|------|------|
+| Lint | ESLint + eslint-plugin-vue | `vue/no-v-html` 可 warn → error |
+| 类型 | vue-tsc | PR 必过 |
+| a11y | `@axe-core/playwright` | 关键页冒烟 |
+| i18n | `eslint-plugin-vue-i18n` | 禁止模板硬编码 |
+| 安全 | `pnpm audit` | 高危未处理 block merge |
+
+**Playwright + axe 示例**：
+
+```typescript
+// e2e/a11y.spec.ts
+import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+
+test('首页无严重 a11y 违规', async ({ page }) => {
+  await page.goto('/');
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa'])
+    .analyze();
+  expect(results.violations.filter(v => v.impact === 'critical')).toEqual([]);
+});
+```
+
+---
+
+## Reviewer 对照速查表
+
+| 维度 | 必看文件/位置 | 通过信号 |
+|------|---------------|----------|
+| i18n | 新增模板文案 | 全走 `$t()` / `t()`，locale 文件同步 |
+| XSS | `v-html`、动态 URL | 经 DOMPurify 或禁止 |
+| a11y | Dialog、Form、IconButton | role/label/焦点陷阱 |
+| Vue | composable、watch | 有 cleanup；无顶层 window（SSR） |
+| 性能 | 新路由、大列表 | lazy import / 虚拟滚动 |
+| 测试 | bugfix PR | 带回归用例 |
+
+---
+
+## 常见 Blocker 与修复模式
+
+| Blocker | 修复 |
+|---------|------|
+| 用户内容 `v-html` | `DOMPurify.sanitize` 或纯文本插值 |
+| 弹层无焦点管理 | `focus-trap-vue` 或自研 trap + `aria-modal` |
+| 鉴权仅靠前端 v-if | 路由 guard + 接口 401 处理 |
+| token 打 console | 删日志或脱敏 |
+| 表单无 label | `<label for>` 或 `aria-label` |
+
+---
+
 ## 小结
 
 PR Review 分三层：编码规范、CI 自动化、人工要点对照。优先级上 Blocker（安全/a11y）高于 Major（性能/测试）高于 Minor。作者合并前对照 i18n、安全、a11y 等维度自检，可减少 Review 往返。Blocker 如裸 v-html 渲染用户内容、无鉴权暴露数据必须修复；Major 如弹层无焦点陷阱、表单缺 label 应在合并前修复。

@@ -8,12 +8,12 @@
 
 ```mermaid
 flowchart TB
-  subgraph public_dir [public/]
+  subgraph public_dir ["public/"]
     P1[favicon.ico]
     P2[robots.txt]
-    P3[/logo.png 原路径访问]
+    P3["/logo.png 原路径访问"]
   end
-  subgraph src_assets [src/assets/]
+  subgraph src_assets ["src/assets/"]
     A1[logo.svg import]
     A2[会被哈希 fingerprint]
   end

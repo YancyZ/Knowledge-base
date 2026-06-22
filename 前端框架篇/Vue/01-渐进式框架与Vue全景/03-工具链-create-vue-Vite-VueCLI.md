@@ -230,6 +230,8 @@ sequenceDiagram
 
 要点：create-vue 生成模板，Vite 负责开发与构建（开发走 ESM + HMR，生产走 Rollup）；Vue CLI 是 Webpack 路线，维护旧仓可用，非 Vue 3 默认选型。
 
+工程化通识对照见 [14-框架工程化实践](../../前端工程化体系/14-框架工程化实践.md)。
+
 
 - 新项目：`npm create vue@latest` → 按需 Router / Pinia / TS → `npm run dev`。
 - 环境变量：Vite 用 `VITE_` 前缀 + `import.meta.env`；CLI 用 `VUE_APP_` + `process.env`。

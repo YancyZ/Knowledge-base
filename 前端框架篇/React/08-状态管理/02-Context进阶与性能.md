@@ -30,24 +30,75 @@ flowchart TB
 
 ---
 
-## 拆分 Context
+## 拆分 Context（完整示例）
+
+电商场景：user / theme / cart 分离，cart 再拆 state 与 dispatch。
 
 ```tsx
-<UserContext.Provider value={user}>
-  <ThemeContext.Provider value={theme}>
+// contexts/cart.tsx
+import { createContext, useContext, useReducer, useMemo, useCallback } from 'react';
+
+type CartState = { items: { id: string; qty: number }[] };
+type CartAction =
+  | { type: 'ADD'; id: string }
+  | { type: 'REMOVE'; id: string };
+
+const CartStateContext = createContext<CartState | null>(null);
+const CartDispatchContext = createContext<React.Dispatch<CartAction> | null>(null);
+
+function cartReducer(state: CartState, action: CartAction): CartState {
+  switch (action.type) {
+    case 'ADD':
+      return { items: [...state.items, { id: action.id, qty: 1 }] };
+    case 'REMOVE':
+      return { items: state.items.filter(i => i.id !== action.id) };
+    default:
+      return state;
+  }
+}
+
+export function CartProvider({ children }: { children: React.ReactNode }) {
+  const [state, dispatch] = useReducer(cartReducer, { items: [] });
+  // dispatch 引用稳定，单独 Provider 不会因子项数量变化而触发「只读 dispatch」的组件
+  return (
     <CartDispatchContext.Provider value={dispatch}>
-      <CartStateContext.Provider value={cartItems}>
-        {children}
-      </CartStateContext.Provider>
+      <CartStateContext.Provider value={state}>{children}</CartStateContext.Provider>
     </CartDispatchContext.Provider>
-  </ThemeContext.Provider>
-</UserContext.Provider>
+  );
+}
+
+export function useCartItems() {
+  const ctx = useContext(CartStateContext);
+  if (!ctx) throw new Error('useCartItems must be inside CartProvider');
+  return ctx.items;
+}
+
+export function useCartDispatch() {
+  const ctx = useContext(CartDispatchContext);
+  if (!ctx) throw new Error('useCartDispatch must be inside CartProvider');
+  return ctx;
+}
 ```
 
-| 策略 | 效果 |
-|------|------|
-| theme / user 分开 | 互不影响 |
-| state / dispatch 分开 | 只 dispatch 的组件不随 items 变 |
+**只显示数量的组件**仅订阅 `items.length` 时，仍会因 `items` 数组引用变化而 render——此时应改用 Zustand selector 或拆 `CartCountContext` 只传 `items.length`。
+
+---
+
+## 按变更频率拆分
+
+```tsx
+// ✅ 主题极少变，单独 Context
+<ThemeContext.Provider value={theme}>
+  {/* 购物车高频变，不拖累主题消费者 */}
+  <CartProvider>{children}</CartProvider>
+</ThemeContext.Provider>
+```
+
+| 拆分维度 | 示例 |
+|----------|------|
+| 读 / 写 | `StateContext` + `DispatchContext` |
+| 业务域 | `AuthContext` / `UIContext` |
+| 变更频率 | `ConfigContext` vs `LiveDataContext` |
 
 ---
 

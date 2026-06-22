@@ -83,11 +83,86 @@ pnpm build
 
 ## 回滚策略
 
-| | |
-|，|，|
-| lockfile 锁 18 | |
-| 特性开关分 PR | |
-| 监控错误率 | |
+| 手段 | 说明 |
+|------|------|
+| lockfile 锁 18 | `package.json` 与 lock 回退到上一 tag |
+| 特性开关分 PR | Compiler / Actions 独立 PR，便于 revert |
+| 监控错误率 | Sentry release 对比，5xx / 白屏告警 |
+| Canary 发布 | 5% 流量观察 30min 再全量 |
+
+---
+
+## Codemod 与自动化迁移
+
+React 19 官方与社区 codemod 可批量处理部分 API 重命名：
+
+```bash
+# React 官方 codemod（示例，以 react.dev 文档为准）
+pnpm dlx codemod@latest react/19/migration-recipe
+
+# 或 types-react-codemod 处理 @types 变更
+pnpm dlx types-react-codemod@latest preset-19 ./src
+```
+
+**升级前检索清单**：
+
+```bash
+# 已弃用 defaultProps（函数组件）
+rg 'defaultProps\s*=' src/ --glob '*.{tsx,jsx}'
+
+# String ref（极老代码）
+rg 'ref="\w+"' src/
+
+# useFormState（→ useActionState）
+rg 'useFormState' src/
+
+# ReactDOM.render（应已迁移 createRoot）
+rg 'ReactDOM\.render' src/
+```
+
+---
+
+## 常见报错与处理
+
+| 报错 / 现象 | 原因 | 处理 |
+|-------------|------|------|
+| `Cannot read properties of null (reading 'useState')` | 双 React 实例 | `pnpm why react` 对齐版本；检查 linked 包 |
+| `useFormState is not exported` | 包版本未升 | 升 react 到 19，`useActionState` 替代 |
+| `@types/react` peer 冲突 | 类型版本不一致 | 统一 `@types/react@19` |
+| Strict Mode 下 effect 跑两次 | 开发态预期行为 | 检查 cleanup，非 React 19 独有 |
+| Suspense 边界闪屏 | 19 微调 fallback 时机 | 补 skeleton；E2E 断言 |
+| `ref` 类型报错 | forwardRef 合并进 props | 移除多余 `forwardRef` 包装，直接 `ref` prop |
+| Next.js `use client` 边界 | Server/Client 混用 | 交互组件加 `'use client'` |
+
+**双 React 诊断**：
+
+```bash
+pnpm why react
+pnpm ls react react-dom
+# monorepo 时在根 package.json 设 pnpm overrides
+```
+
+```json
+{
+  "pnpm": {
+    "overrides": {
+      "react": "^19.0.0",
+      "react-dom": "^19.0.0"
+    }
+  }
+}
+```
+
+---
+
+## 分阶段迁移计划
+
+| 周次 | 目标 | 验收 |
+|------|------|------|
+| W1 | 升依赖 + 类型 + CI 绿 | `pnpm test --run && pnpm build` |
+| W2 | 清弃用 API（defaultProps、旧 ref） | rg 检索 = 0 |
+| W3 | 新表单试点 `useActionState` | 1～2 个低风险表单 |
+| W4 | staging 开 Compiler（可选） | Profiler 无回归 |
 
 ---
 

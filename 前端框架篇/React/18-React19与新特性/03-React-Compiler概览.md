@@ -75,17 +75,82 @@ Next.js 15+ 可选 `experimental.reactCompiler: true`。
 
 ---
 
+## 编译前后对比
+
+**输入（开发者手写）**：
+
+```tsx
+function ProductList({ products }: { products: Product[] }) {
+  const sorted = products.slice().sort((a, b) => a.price - b.price);
+  return (
+    <ul>
+      {sorted.map(p => (
+        <ProductRow key={p.id} product={p} />
+      ))}
+    </ul>
+  );
+}
+
+function ProductRow({ product }: { product: Product }) {
+  return <li>{product.name} — ¥{product.price}</li>;
+}
+```
+
+**Compiler 思路（概念化伪代码）**：分析 `products` 未变则跳过 `sorted` 重算；`ProductRow` props 未变则跳过 re-render——等价于自动插入：
+
+```tsx
+// 等价于 Compiler 可能生成的逻辑（示意，非真实输出）
+const ProductList = memo(function ProductList({ products }) {
+  const sorted = useMemo(
+    () => products.slice().sort((a, b) => a.price - b.price),
+    [products],
+  );
+  // ...
+});
+
+const ProductRow = memo(function ProductRow({ product }) {
+  // ...
+});
+```
+
+| 对比项 | 手写 memo | Compiler |
+|--------|-----------|----------|
+| `sorted` 缓存 | 需记得写 `useMemo` | 自动 |
+| `ProductRow` | 需 `memo` + 稳定 props | 自动分析 props |
+| deps 遗漏 | 易 stale | 编译期推导 |
+| 调试 | 直观 | 需看 Babel 产物 |
+
+**验证 Compiler 是否生效**：
+
+```bash
+# 构建后搜索编译标记（随版本变化，以官方文档为准）
+pnpm build
+rg '_c\(|useMemoCache' dist/assets/*.js | head
+```
+
+开发态可用 React DevTools **「✨」标记**（启用 Compiler 的组件）。
+
+---
+
 ## opt-out
 
 编译器支持跳过特定组件（注解或配置），用于：
 
-| 场景 | |
-|------|，|
-| 与 imperative 第三方库冲突 | |
-| 实测 Compiler 反而变慢 | |
-| 调试期对比 | |
+| 场景 | 说明 |
+|------|------|
+| 与 imperative 第三方库冲突 | 地图、图表等直接操作 DOM |
+| 实测 Compiler 反而变慢 | 极少数热路径 |
+| 调试期对比 | A/B 手动 memo vs 自动 |
 
 查阅官方 `use no memo` 等 pragma（随版本演进）。
+
+```tsx
+'use no memo'; // 示意：跳过本文件/组件（以官方语法为准）
+
+function MapCanvas() {
+  // 与 Compiler 不兼容的 imperative 逻辑
+}
+```
 
 ---
 
