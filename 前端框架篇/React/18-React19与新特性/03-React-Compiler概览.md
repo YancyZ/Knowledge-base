@@ -96,7 +96,7 @@ function ProductRow({ product }: { product: Product }) {
 }
 ```
 
-**Compiler 思路（概念化伪代码）**：分析 `products` 未变则跳过 `sorted` 重算；`ProductRow` props 未变则跳过 re-render——等价于自动插入：
+**Compiler 思路（概念化伪代码）**：分析 `products` 未变则跳过 `sorted` 重算；`ProductRow` props 未变则跳过 re-render，等价于自动插入：
 
 ```tsx
 // 等价于 Compiler 可能生成的逻辑（示意，非真实输出）

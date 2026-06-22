@@ -159,7 +159,7 @@ pnpm ls react react-dom
 
 | 周次 | 目标 | 验收 |
 |------|------|------|
-| W1 | 升依赖 + 类型 + CI 绿 | `pnpm test --run && pnpm build` |
+| W1 | 升依赖 + 类型 + CI 绿 | `pnpm test ，run && pnpm build` |
 | W2 | 清弃用 API（defaultProps、旧 ref） | rg 检索 = 0 |
 | W3 | 新表单试点 `useActionState` | 1～2 个低风险表单 |
 | W4 | staging 开 Compiler（可选） | Profiler 无回归 |

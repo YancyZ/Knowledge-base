@@ -80,7 +80,7 @@ export function useCartDispatch() {
 }
 ```
 
-**只显示数量的组件**仅订阅 `items.length` 时，仍会因 `items` 数组引用变化而 render——此时应改用 Zustand selector 或拆 `CartCountContext` 只传 `items.length`。
+**只显示数量的组件**仅订阅 `items.length` 时，仍会因 `items` 数组引用变化而 render，此时应改用 Zustand selector 或拆 `CartCountContext` 只传 `items.length`。
 
 ---
 
