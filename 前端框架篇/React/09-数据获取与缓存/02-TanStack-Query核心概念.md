@@ -1,10 +1,10 @@
 # TanStack Query 核心概念
 
-> **TanStack Query（原 React Query）** 用 `queryKey` 标识缓存、`queryFn` 拉数据，统一管理 loading / error / 后台刷新。本篇讲安装、核心 API 与生命周期。
+TanStack Query 用 **QueryClient** 全局 cache，**queryKey** 唯一标识一份缓存，**queryFn** 实际请求；最小 setup、`useQuery` / `useMutation` 基础，以及 staleTime、enabled 等常用选项。
 
 ---
 
-## 一、最小 setup
+## 最小 setup
 
 ```bash
 pnpm add @tanstack/react-query
@@ -45,7 +45,7 @@ flowchart TB
 
 ---
 
-## 二、useQuery
+## useQuery
 
 ```tsx
 import { useQuery } from '@tanstack/react-query';
@@ -83,7 +83,7 @@ function UserList() {
 
 ---
 
-## 三、queryKey：缓存的身份证
+## queryKey：缓存的身份证
 
 ```tsx
 // 全站用户列表
@@ -111,7 +111,7 @@ useQuery({
 
 ---
 
-## 四、staleTime vs gcTime
+## staleTime vs gcTime
 
 | 选项 | 默认（v5） | 含义 |
 |------|------------|------|
@@ -138,7 +138,7 @@ stateDiagram-v2
 
 ---
 
-## 五、enabled 条件查询
+## enabled 条件查询
 
 ```tsx
 const { userId } = useParams();
@@ -154,7 +154,7 @@ const { data: user } = useQuery({
 
 ---
 
-## 六、useMutation 概览
+## useMutation 概览
 
 ```tsx
 const mutation = useMutation({
@@ -173,11 +173,9 @@ mutation.mutate({ id: '1', name: '新名字' });
 | 缓存 | 有 queryKey | 无（或手动更新 cache） |
 | 触发 | 自动 / refetch | `mutate()` |
 
-详见 [03-Query与Mutation实战模式](./03-Query与Mutation实战模式.md)。
-
 ---
 
-## 七、DevTools
+## DevTools
 
 ```tsx
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -189,7 +187,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
 ---
 
-## 八、与 Suspense（可选）
+## 与 Suspense（可选）
 
 ```tsx
 useQuery({
@@ -199,18 +197,14 @@ useQuery({
 });
 ```
 
-需 Error Boundary + Suspense 边界；并发模式见 [12-并发与Suspense](../12-并发与Suspense/)。
+需 Error Boundary + Suspense 边界；适合与并发渲染配合的加载模式。
 
 ---
 
-## 九、小结
+## 小结
 
-| 概念 | 记住 |
-|------|------|
-| QueryClient | 全局 cache 容器 |
-| queryKey | 缓存键 |
-| queryFn | 实际请求 |
-| staleTime | 控制「多快算过期」 |
+**QueryClient** 全局 cache；**queryKey** 唯一标识一份缓存；**queryFn** 实际请求。**staleTime** 控制多久内视为新鲜；**gcTime** 控制卸载后保留多久。
 
-**上一篇**：[01-服务端状态本质](./01-服务端状态本质.md)  
-**下一篇**：[03-Query与Mutation实战模式](./03-Query与Mutation实战模式.md)
+**enabled: false** 做条件查询；**useMutation** 处理写操作与 cache 失效。开发开 **React Query DevTools** 观察 cache 状态。
+
+常见错因：queryKey 是否含全部影响结果的参数？切页回来为何又 loading，staleTime 是否过短？

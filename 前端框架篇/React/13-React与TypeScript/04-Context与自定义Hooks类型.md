@@ -1,10 +1,10 @@
 # Context 与自定义 Hooks 类型
 
-> **Context** 和 **自定义 Hook** 是 TS 里最容易出现 `undefined`、循环依赖类型的地方。本篇给出类型安全的模板。
+**Context** 和 **自定义 Hook** 是 TS 里最容易出现 `undefined`、循环依赖类型的地方。本篇给出类型安全的模板。
 
 ---
 
-## 一、Context 完整模板
+## Context 完整模板
 
 ```tsx
 interface AuthContextValue {
@@ -42,9 +42,11 @@ function useAuth(): AuthContextValue {
 | `null` 默认 | 区分「未包裹 Provider」 |
 | 自定义 hook 断言 | 对外返回非 null 类型 |
 
+Context 默认 `null`，自定义 hook 内断言并 throw，对外返回非 null 的 `AuthContextValue`。
+
 ---
 
-## 二、分类型 Context（Discriminated）
+## 分类型 Context（Discriminated）
 
 ```tsx
 type RequestState<T> =
@@ -66,9 +68,11 @@ if (state.status === 'success') {
 }
 ```
 
+联合 state 让 TS 在 `status` 收窄后知道 `data` 或 `error` 是否存在。
+
 ---
 
-## 三、自定义 Hook 返回类型
+## 自定义 Hook 返回类型
 
 ```tsx
 interface UseCounterReturn {
@@ -91,7 +95,7 @@ function useCounter(initial = 0): UseCounterReturn {
 
 ---
 
-## 四、泛型自定义 Hook
+## 泛型自定义 Hook
 
 ```tsx
 function useLocalStorage<T>(
@@ -111,9 +115,11 @@ function useLocalStorage<T>(
 }
 ```
 
+泛型 Hook 让 localStorage 读写保持类型一致，调用处传入 initial 即可推断 T。
+
 ---
 
-## 五、useReducer 类型
+## useReducer 类型
 
 ```tsx
 type State = { count: number };
@@ -133,11 +139,11 @@ function reducer(state: State, action: Action): State {
 }
 ```
 
-`never` 保证 action 穷尽。
+`never` 保证 action 穷尽。新增 action 类型时 default 分支会报错，防止遗漏 case。
 
 ---
 
-## 六、Hook 依赖与类型
+## Hook 依赖与类型
 
 ```tsx
 function useUser(userId: string | undefined) {
@@ -149,11 +155,11 @@ function useUser(userId: string | undefined) {
 }
 ```
 
-`enabled` 收窄后 `queryFn` 内仍可能需 `!` 或 throw——Query 仅在 enabled 时调用 fn。
+`enabled` 收窄后 `queryFn` 内仍可能需 `!` 或 throw，Query 仅在 enabled 时调用 fn，但 TS 不一定能自动推断。
 
 ---
 
-## 七、导出规范
+## 导出规范
 
 ```tsx
 // hooks/useAuth.ts
@@ -165,13 +171,8 @@ export type { AuthContextValue };
 
 ---
 
-## 八、小结
+## 小结
 
-| 模式 | |
-|------|--|
-| Context + 断言 hook | 防 undefined |
-| 联合 state | 窄化 data |
-| 泛型 useXxx | 复用逻辑保类型 |
+Context 默认 null + 自定义 hook 断言；联合 state 窄化 data；复杂逻辑用 useReducer 穷尽 action。
 
-**上一篇**：[03-泛型组件与forwardRef](./03-泛型组件与forwardRef.md)  
-**下一篇**：[05-组件库类型导出](./05-组件库类型导出.md)
+Context 类型安全模板：createContext 默认 null，Provider 用 useMemo 稳定 value，自定义 hook 内断言 throw 后返回非 null 类型。联合 state（discriminated union）在 status 收窄后访问 data/error。自定义 Hook 可显式定义返回接口或用 TS 推断；泛型 Hook 如 useLocalStorage<T> 保持读写类型一致。useReducer 用 never 穷尽 action。Query 等 Hook 的 enabled 与 queryFn 内类型收窄需注意。导出时用 export type 分离类型，与实现同文件 export。

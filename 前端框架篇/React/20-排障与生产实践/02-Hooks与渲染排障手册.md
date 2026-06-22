@@ -1,10 +1,10 @@
 # Hooks 与渲染排障手册
 
-> **Hooks 顺序错、effect 依赖错、闭包陈旧** 是隐性 bug 大户。本篇用**现象 → 根因 → 修法**串联 05、06 模块知识。
+**Hooks 顺序错、effect 依赖错、闭包陈旧** 是隐性 bug 大户。本篇用**现象 → 根因 → 修法**串联 Hooks 与渲染知识。
 
 ---
 
-## 一、Hooks 两条规则复查
+## Hooks 两条规则复查
 
 ```mermaid
 flowchart TB
@@ -15,15 +15,15 @@ flowchart TB
 ```
 
 | 违规现象 | |
-|----------|--|
+|----------|，|
 | 热更新后随机崩 | 条件 Hook |
 | 自定义 Hook 里又条件调 useState | 拆子 Hook |
 
-见 [00-Hooks总览](../05-Hooks体系/00-Hooks总览与规则.md)。
+Hooks 必须在函数组件或自定义 Hook 的顶层调用，顺序稳定。
 
 ---
 
-## 二、stale closure（陈旧闭包）
+## stale closure（陈旧闭包）
 
 **现象**：effect 或回调里读到旧的 state/props。
 
@@ -45,20 +45,20 @@ useEffect(() => {
 ```
 
 | 修法 | |
-|------|--|
+|------|，|
 | 函数式 setState `setX(x => ...)` | |
 | ref 存最新值 | |
 | 把变量加入 deps | |
 
 ---
 
-## 三、useEffect 依赖
+## useEffect 依赖
 
 | 问题 | 处理 |
 |------|------|
 | 漏依赖 | exhaustive-deps，或 eslint-disable 注明理由 |
 | 对象/函数 deps 每次变 | useMemo/useCallback 或移入 effect |
-| 应用 Query 代替 fetch effect | [09-Query](../09-数据获取与缓存/) |
+| 应用 Query 代替 fetch effect | TanStack Query 管理服务端数据 |
 
 ```tsx
 // ❌ 无限请求
@@ -72,7 +72,7 @@ const filterKey = useMemo(() => ({ ...filters }), [filters.status, filters.page]
 
 ---
 
-## 四、无限渲染环
+## 无限渲染环
 
 ```mermaid
 flowchart LR
@@ -83,26 +83,26 @@ flowchart LR
 ```
 
 | 断环 | |
-|------|--|
+|------|，|
 | effect 内加条件再 setState | |
 | 比较前后值 | |
 | 用 useRef 标记已处理 | |
 
 ---
 
-## 五、父 render 拖垮子树
+## 父 render 拖垮子树
 
 **现象**：输入卡顿，Profiler 显示无关子树全 render。
 
-| 手段 | 文档 |
+| 手段 | 说明 |
 |------|------|
-| 状态下沉 | [11-01](../11-性能优化/01-React渲染性能原理.md) |
-| memo + 稳定 props | [11-02](../11-性能优化/02-memo-useMemo-useCallback.md) |
-| Context 拆分 | [08-02](../08-状态管理/02-Context进阶与性能.md) |
+| 状态下沉 | 输入 state 隔离到子组件 |
+| memo + 稳定 props | 大列表行组件 |
+| Context 拆分 | 按关注点拆 Provider |
 
 ---
 
-## 六、Strict Mode 双 effect
+## Strict Mode 双 effect
 
 开发态 mount → unmount → mount，**effect 跑两次**。
 
@@ -119,43 +119,39 @@ useEffect(() => {
 
 ---
 
-## 七、自定义 Hook 排障
+## 自定义 Hook 排障
 
 | 检查 | |
-|------|--|
+|------|，|
 | 返回值是否每 render 新对象 | useMemo 包 |
 | 是否隐藏条件 Hook | 拆函数 |
-| 测试是否用 renderHook | [15-04](../15-测试/04-Hooks与Provider测试.md) |
+| 测试是否用 renderHook | renderHook + wrapper |
 
 ---
 
-## 八、并发相关
+## 并发相关
 
 | 现象 | 尝试 |
 |------|------|
 | 输入卡 | startTransition |
 | 旧结果闪一下 | useDeferredValue |
 
-见 [12-02](../12-并发与Suspense/02-useTransition与useDeferredValue.md)。
+---
+
+## Hook 排障要点
+
+| 项 | 说明 |
+|-----|------|
+| Hook 只在顶层 | 不在条件/循环里 |
+| effect 有清理 | 防双订阅 |
+| deps 合理 | exhaustive-deps |
+| 闭包用函数式更新或 ref | 防 stale closure |
+| Profiler 验证优化有效 | 测量后再优化 |
 
 ---
 
-## 九、Checklist
+## 小结
 
-| ☐ | 项 |
-|---|-----|
-| ☐ | Hook 只在顶层 |
-| ☐ | effect 有清理 |
-| ☐ | deps 合理 |
-| ☐ | 闭包用函数式更新或 ref |
-| ☐ | Profiler 验证优化有效 |
+三大类隐性 bug：stale closure、effect 无限环、渲染范围过大，deps 与函数式 setState 是常用解法。
 
----
-
-## 十、小结
-
-| 三大类 | stale closure、effect 环、渲染范围 |
-|--------|----------------------------------|
-
-**上一篇**：[01-常见运行时错误与修复](./01-常见运行时错误与修复.md)  
-**下一篇**：[03-生产环境监控与日志](./03-生产环境监控与日志.md)
+Hooks 排障：遵守两条规则（顶层、仅函数组件/自定义 Hook）。stale closure 用函数式 setState、ref 或加 deps。effect 依赖：漏依赖补全、对象/函数 deps 稳定化、服务端数据用 Query。无限渲染环：effect 内加条件、比较前后值、useRef 标记。父 render 拖子树：状态下沉、memo、Context 拆分。Strict Mode 双 effect 是预期，需确保 cleanup。自定义 Hook：返回值稳定化、无隐藏条件 Hook。并发：输入卡用 startTransition，旧结果闪用 useDeferredValue。

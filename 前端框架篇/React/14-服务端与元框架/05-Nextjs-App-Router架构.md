@@ -1,10 +1,10 @@
 # Next.js App Router 架构
 
-> **App Router**（`app/` 目录）是 Next.js 13+ 默认路由：**文件系统路由 + RSC + Layout + Server Action**。理解目录约定即可快速定位页面与数据逻辑。
+**App Router**（`app/` 目录）是 Next.js 13+ 默认路由：**文件系统路由 + RSC + Layout + Server Action**。理解目录约定即可快速定位页面与数据逻辑。
 
 ---
 
-## 一、目录结构
+## 目录结构
 
 ```
 app/
@@ -32,9 +32,11 @@ flowchart TB
   Dash --> DashPage[dashboard/page]
 ```
 
+`app/` 目录即路由。括号 `(marketing)` 是路由组，不影响 URL，用于组织共享 layout。
+
 ---
 
-## 二、特殊文件
+## 特殊文件
 
 | 文件 | 作用 |
 |------|------|
@@ -45,9 +47,11 @@ flowchart TB
 | `template.tsx` | 类似 layout 但 remount |
 | `route.ts` | API Route Handler |
 
+约定式文件：`loading.tsx` 自动包 Suspense，`error.tsx` 是 Client 错误边界，`route.ts` 定义 API 端点。
+
 ---
 
-## 三、Server / Client 默认
+## Server / Client 默认
 
 | 文件 | 默认 |
 |------|------|
@@ -62,9 +66,11 @@ export default async function UserPage({ params }: { params: { id: string } }) {
 }
 ```
 
+App Router 默认 Server Component，需要 Hooks 或事件的文件加 `'use client'`。
+
 ---
 
-## 四、数据获取
+## 数据获取
 
 ```tsx
 // 直接 async Server Component
@@ -87,9 +93,11 @@ export default async function BlogPage() {
 | 动态 | `{ cache: 'no-store' }` |
 | 定时 | `{ next: { revalidate: N } }` |
 
+Server Component 内直接 async fetch，通过 `cache` 和 `revalidate` 控制缓存策略。
+
 ---
 
-## 五、与 Pages Router 对比
+## 与 Pages Router 对比
 
 | | Pages (`pages/`) | App (`app/`) |
 |---|------------------|--------------|
@@ -98,9 +106,11 @@ export default async function BlogPage() {
 | 布局 | `_app.tsx` 手写 | `layout.tsx` 嵌套 |
 | 推荐 | 维护旧项目 | **新项目** |
 
+新项目推荐 App Router；旧 Pages 项目可渐进迁移。
+
 ---
 
-## 六、Metadata 与 SEO
+## Metadata 与 SEO
 
 ```tsx
 export const metadata = {
@@ -115,9 +125,11 @@ export async function generateMetadata({ params }) {
 }
 ```
 
+静态 metadata 导出对象；动态页面用 `generateMetadata` 异步生成 title 和 description。
+
 ---
 
-## 七、部署
+## 部署
 
 | 模式 | 平台 |
 |------|------|
@@ -125,9 +137,11 @@ export async function generateMetadata({ params }) {
 | Static export | `output: 'export'` 纯静态 |
 | Edge | Middleware、部分 Route |
 
+Node server 支持 SSR/RSC；static export 纯静态；Edge 跑 Middleware 和部分 Route Handler。
+
 ---
 
-## 八、与 SPA 协作
+## 与 SPA 协作
 
 | 模式 | 说明 |
 |------|------|
@@ -135,16 +149,12 @@ export async function generateMetadata({ params }) {
 | Next + 微前端 | 子应用 CSR |
 | 仅 Next 做 marketing | 产品 SPA 子域 |
 
+Next 不必包全站。marketing 用 Next SSR，产品区独立 SPA 子域，是常见分工。
+
 ---
 
-## 九、小结
+## 小结
 
-| 记住 | |
-|------|--|
-| app/ 文件即路由 | |
-| layout 嵌套 | |
-| 默认 Server，交互加 use client | |
-| loading/error 约定式 | |
+app/ 目录即路由；layout 嵌套共享 UI，默认 Server Component，交互加 use client。
 
-**上一篇**：[04-Server-Actions与表单变更](./04-Server-Actions与表单变更.md)  
-**下一篇**：[06-Remix与其它元框架简览](./06-Remix与其它元框架简览.md)
+Next.js App Router 用 `app/` 文件系统路由：layout 嵌套共享 UI 且保留 state，page 是路由 UI，loading/error 约定式 Suspense 和错误边界。默认 Server Component，需 Hooks/事件加 `'use client'`。数据获取在 async Server Component 内 fetch，用 cache/revalidate 控制静态/动态/ISR。与 Pages Router 比：App 默认 Server、layout 嵌套、async 组件取数。metadata/generateMetadata 处理 SEO。部署：Node server（SSR）、static export、Edge。可与 SPA 混合：Next 全栈、微前端子应用、或仅 marketing SSR。

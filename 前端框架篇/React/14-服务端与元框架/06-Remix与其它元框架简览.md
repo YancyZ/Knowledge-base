@@ -1,10 +1,10 @@
 # Remix 与其它元框架简览
 
-> **Next.js** 占主流，但 **Remix**、**Expo Router** 等在不同场景有优势。了解差异，避免「只会一种框架」。
+**Next.js** 占主流，但 **Remix**、**Expo Router** 等在不同场景有优势。了解差异，避免「只会一种框架」。
 
 ---
 
-## 一、元框架对比
+## 元框架对比
 
 | | Next.js App | Remix | TanStack Start |
 |---|-------------|-------|----------------|
@@ -14,9 +14,11 @@
 | 部署 | Vercel 优化 | 多平台 | 早期 |
 | 心智 | React 官方 RSC 路线 | Web Fetch API | 全栈 TS |
 
+Next.js 走 RSC 路线，Remix 走 loader/action 贴近 React Router，TanStack Start 新兴且与 Query 同源。
+
 ---
 
-## 二、Remix 核心
+## Remix 核心
 
 ```tsx
 // routes/users.$id.tsx
@@ -49,11 +51,11 @@ flowchart LR
 | action | RR action |
 | Form | 原生 form + progressive enhancement |
 
-**Remix 已合并进 React Router v7** 路线，loader/action 与 RR 趋同。
+**Remix 已合并进 React Router v7** 路线，loader/action 与 RR 趋同。Remix 心智模型贴近 Web 标准和 React Router。
 
 ---
 
-## 三、选型建议
+## 选型建议
 
 ```mermaid
 flowchart TD
@@ -65,15 +67,17 @@ flowchart TD
   R -->|否| V[Vite SPA + Query]
 ```
 
+要 RSC 和 Vercel 生态 → Next.js；偏好 loader/action 模型 → React Router / Remix；纯后台 → Vite SPA + Query。
+
 ---
 
-## 四、其它
+## 其它框架
 
 | 框架 | 场景 |
 |------|------|
 | **Gatsby** | 内容站、GraphQL 源 |
 | **Expo Router** | React Native 文件路由 |
-| **Astro + React islands** |  mostly 静态 + 交互岛 |
+| **Astro + React islands** | mostly 静态 + 交互岛 |
 
 React 作 **岛屿**：
 
@@ -84,26 +88,25 @@ React 作 **岛屿**：
 <ReactCounter client:visible />
 ```
 
+Astro 页面 mostly 静态 HTML，React 组件作为交互岛按需 hydrate。
+
 ---
 
-## 五、从 SPA 迁移
+## 从 SPA 迁移
 
 | 步骤 | |
-|------|--|
+|------|，|
 | 路由对照 pages → app 或 routes | |
 | getServerSideProps → loader/async | |
 | API Routes → Server Action 或 route handler | |
 | 客户端-only 库标记 `'use client'` | |
 
+迁移时逐路由对照，数据获取从 getServerSideProps 迁到 loader 或 async Server Component，API Route 迁到 Server Action 或 route handler。
+
 ---
 
-## 六、小结
+## 小结
 
-| 结论 | |
-|------|--|
-| 默认推荐 Next App Router（RSC 生态） | |
-| Remix/RR 适合 loader 思维团队 | |
-| 纯后台仍可用 Vite SPA | |
+Next 占 RSC 主流，Remix/RR 适合 loader 思维；纯后台仍可用 Vite SPA。
 
-**上一篇**：[05-Nextjs-App-Router架构](./05-Nextjs-App-Router架构.md)  
-**下一模块**：[15-测试](../15-测试/01-测试策略与金字塔.md)
+元框架对比：Next.js（RSC + App Router + Vercel 生态）、Remix（loader/action + Web 标准，已合并进 RR v7）、TanStack Start（新兴，Query 同源）。Remix 核心 loader 取数 + action 变更 + 自动 revalidate，贴近 React Router Data Router。选型：要 RSC → Next；偏好 loader 模型 → RR/Remix；纯后台 → Vite SPA。其它：Gatsby（内容站）、Expo Router（RN）、Astro（静态 + React 岛）。从 SPA 迁移：路由对照、数据获取迁 loader/async、API 迁 Action/route handler、客户端库标 `'use client'`。

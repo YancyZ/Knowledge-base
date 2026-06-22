@@ -1,10 +1,10 @@
 # Children 与组合模式
 
-> **children** 是最常用的组合 API：父组件声明「槽位」，调用方决定填入什么。用好组合，可以避免 prop drilling 和臃肿的 `showX/showY` 开关。
+React 没有 Vue 的具名 slot 语法，但用 `children`、多 prop 插槽和复合组件同样能做出灵活布局。思路是**组合优于配置**，少堆 `showHeader/showSidebar` 布尔开关，多让调用方组装子树。
 
 ---
 
-## 一、children 基础
+## children 基础与类型
 
 ```tsx
 function Card({ title, children }: {
@@ -28,52 +28,18 @@ function Card({ title, children }: {
 | `React.ReactNode` 包括 | 不渲染 |
 |------------------------|--------|
 | 元素、字符串、数字、数组 | `null`、`undefined`、`false` |
-| Portal、Fragment | `true`（单独 true 不显示） |
+
+更严格时可限定 `ReactElement` 或 `ReactElement<{ id: string }>`。
 
 ---
 
-## 二、children 的类型细分
-
-```tsx
-import type { ReactElement, ReactNode } from 'react';
-
-// 只允许单个元素
-function Wrapper({ children }: { children: ReactElement }) {
-  return <div className="wrap">{children}</div>;
-}
-
-// 只允许 string（少见）
-function Text({ children }: { children: string }) {
-  return <span>{children}</span>;
-}
-```
-
-| 类型 | 严格度 |
-|------|--------|
-| `ReactNode` | 最宽，常用 |
-| `ReactElement` | 单个元素 |
-| `ReactElement<{ id: string }>` | 限定元素 props |
-
----
-
-## 三、组合 vs 配置 props
-
-### 3.1 配置式（props 爆炸）
+## 组合 vs 配置 props
 
 ```tsx
 // ❌ 难扩展
-<Page
-  showHeader
-  showSidebar
-  headerTitle="首页"
-  sidebar={<Menu />}
-  footer={<Footer />}
-/>
-```
+<Page showHeader showSidebar headerTitle="首页" sidebar={<Menu />} />
 
-### 3.2 组合式（推荐）
-
-```tsx
+// ✅ 复合组件
 <Page>
   <Page.Header title="首页" />
   <Page.Body>
@@ -94,13 +60,9 @@ flowchart TB
   User[调用方传入子树] --> compound
 ```
 
-见 [07-复合组件](../07-组件模式与架构/01-复合组件与状态共享.md)。
-
 ---
 
-## 四、具名 slot：多 children 替代
-
-React 没有 Vue 的 `slot` 名字，常用 **多个 props** 模拟：
+## 具名 slot：多 children 替代
 
 ```tsx
 interface LayoutProps {
@@ -131,45 +93,25 @@ function Layout({ header, sidebar, children, footer }: LayoutProps) {
 
 ---
 
-## 五、组件组合解决 drilling
-
-**问题**：Theme 在 App，深层 Button 需要 theme。
+## 组合解决 prop drilling
 
 ```tsx
 // ❌ 层层传 theme
 <Layout theme={theme}>
   <Sidebar theme={theme}>
     <DeepButton theme={theme} />
-```
 
-**组合**：中间层不关心 theme，由调用方直接组装：
-
-```tsx
-function Layout({ sidebar, children }: {
-  sidebar: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <aside>{sidebar}</aside>
-      <main>{children}</main>
-    </div>
-  );
-}
-
-// App 直接把带 theme 的 Button 放进 sidebar
-<Layout sidebar={<DeepButton theme={theme} />} >
+// ✅ 中间层不关心 theme，由 App 直接组装
+<Layout sidebar={<DeepButton theme={theme} />}>
   ...
 </Layout>
 ```
 
-Facebook 经典文章 *Inversion of Control* 核心：**父级通过组合控制子树结构**。
+父级通过**组合控制子树结构**（Inversion of Control），中间层不必转发不用的 props。
 
 ---
 
-## 六、render props
-
-父组件把「如何渲染」交给 props 函数：
+## render props 与 function as children
 
 ```tsx
 function MouseTracker({ render }: {
@@ -177,28 +119,12 @@ function MouseTracker({ render }: {
 }) {
   const [pos, setPos] = useState({ x: 0, y: 0 });
   return (
-    <div
-      onMouseMove={e => setPos({ x: e.clientX, y: e.clientY })}
-      style={{ height: 200 }}
-    >
+    <div onMouseMove={e => setPos({ x: e.clientX, y: e.clientY })}>
       {render(pos)}
     </div>
   );
 }
-
-<MouseTracker render={({ x, y }) => <p>{x}, {y}</p>} />
 ```
-
-| 对比 children | render prop |
-|---------------|-------------|
-| 静态结构 | 需要父组件内部**数据**参与渲染 |
-| `<List>{items}</List>` | `<List renderItem={...} />` |
-
-现代更常改为 **自定义 Hook**（`useMouse`）+ 普通 children，减少嵌套。
-
----
-
-## 七、function as children
 
 ```tsx
 function DataProvider({ url, children }: {
@@ -208,17 +134,13 @@ function DataProvider({ url, children }: {
   const { data = [] } = useQuery({ queryKey: [url], queryFn: () => fetch(url).then(r => r.json()) });
   return <>{children(data)}</>;
 }
-
-<DataProvider url="/api/users">
-  {users => users.map(u => <li key={u.id}>{u.name}</li>)}
-</DataProvider>
 ```
 
-与 render prop 类似；注意 children 是函数时类型为 `(data) => ReactNode`。
+现代更常抽 **`useMouse` / `useUsers`** 等 Hook，减少 JSX 嵌套。
 
 ---
 
-## 八、克隆元素（cloneElement）— 慎用
+## cloneElement — 慎用
 
 ```tsx
 function Row({ children }: { children: React.ReactElement }) {
@@ -226,67 +148,40 @@ function Row({ children }: { children: React.ReactElement }) {
 }
 ```
 
-| 问题 | 说明 |
-|------|------|
-| 隐式注入 props | 难追踪 |
-| 与 TS 不友好 | 替代：Context、组合、显式 wrapper |
-
-**优先** Context 或 compound components，少 `cloneElement`。
+隐式注入 props、TS 不友好，优先 Context、复合组件或显式 wrapper。
 
 ---
 
-## 九、Provider 组合模式
+## Provider 组合
 
 ```tsx
 function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={theme}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <AuthProvider>{children}</AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
 }
 ```
 
-```mermaid
-flowchart TB
-  Q[QueryClientProvider]
-  T[ThemeProvider]
-  A[AuthProvider]
-  App[App 路由树]
-  Q --> T --> A --> App
-```
-
-可抽 `composeProviders` 工具减少嵌套视觉噪音。
+可抽 `composeProviders` 减少嵌套视觉噪音。
 
 ---
 
-## 十、空 children 与条件
+## 小结
 
-```tsx
-function Optional({ visible, children }: {
-  visible: boolean;
-  children: React.ReactNode;
-}) {
-  if (!visible) return null;
-  return <>{children}</>;
-}
-```
+**children**：默认内容槽；多区域用 **header/footer** 等具名 props。
 
----
+**复合组件**（`Page.Header`）：固定结构 + 灵活内容，优于一堆布尔 props。
 
-## 十一、小结
+**render props / function as children**：需注入数据时用；多数可被**自定义 Hook** 替代。
 
-| 模式 | 何时用 |
-|------|--------|
-| `children` | 单一内容槽、布局包裹 |
-| 具名 props | 多区域 layout |
-| 复合组件 `Page.Header` | 固定结构 + 灵活内容 |
-| render props / FaC | 需要注入数据（可 Hook 替代） |
-| Provider 嵌套 | 全局依赖 |
+**组合**：用 children 提升子树，缓解 prop drilling；少 `cloneElement`。
 
-**上一篇**：[02-Props与单向数据流](./02-Props与单向数据流.md)  
-**下一篇**：[04-State基础与更新语义](./04-State基础与更新语义.md)
+**Provider 嵌套**：全局依赖分层注入；Query/Theme/Auth 可抽 `AppProviders`。
+
+**易混点**：`children` 为函数时类型是 `(data) => ReactNode`；`true` 单独作为 children 不渲染。
+
+常见错因：能否用组合代替中间层转发 props？是否该拆复合组件而非加 `showX`？

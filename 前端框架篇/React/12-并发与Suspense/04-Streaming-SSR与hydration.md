@@ -1,10 +1,10 @@
 # Streaming SSR 与 Hydration
 
-> **SSR** 在服务端生成 HTML，浏览器 **hydration** 把事件与 state 绑到已有 DOM。**Streaming** 边生成边发送，让用户更早看到内容。
+**SSR** 在服务端生成 HTML，浏览器 **hydration** 把事件与 state 绑到已有 DOM。**Streaming** 边生成边发送，让用户更早看到内容。
 
 ---
 
-## 一、CSR vs SSR
+## CSR vs SSR
 
 ```mermaid
 flowchart TB
@@ -30,9 +30,11 @@ flowchart TB
 | 服务器负载 | 低 | 有 |
 | TTFB | — | 可能略增 |
 
+CSR 首屏要等 JS 下载执行才有内容；SSR 服务端先出 HTML，浏览器可更早 FCP/LCP，再用 hydration 绑定交互。
+
 ---
 
-## 二、hydration 是什么？
+## hydration 是什么
 
 ```tsx
 // 客户端
@@ -47,9 +49,11 @@ React 对比服务端 HTML 与客户端首次 render，**对齐**并附加事件
 | **Hydration mismatch** | 服务端与客户端输出不一致 |
 | 常见坑 | `Date.now()`、`Math.random()`、错误 useId |
 
+hydration 要求服务端和客户端首次 render 输出一致。不一致时 React 会警告甚至重新 render，影响性能和体验。
+
 ---
 
-## 三、Streaming SSR
+## Streaming SSR
 
 ```mermaid
 sequenceDiagram
@@ -76,28 +80,30 @@ pipeToNodeWritable(
 );
 ```
 
-实际多用 **Next.js / Remix** 封装。
+实际多用 **Next.js / Remix** 封装。Streaming 不必等所有数据就绪才发送 HTML，Suspense 边界内的慢块可以后续 chunk 到达。
 
 ---
 
-## 四、Selective Hydration
+## Selective Hydration
 
 并发模式下，用户可在**未完全 hydrate** 前交互；React 优先 hydrate 交互区域。
 
 | 体验 | |
-|------|--|
+|------|，|
 | 点击先响应 | 相关子树优先 hydrate |
+
+Selective Hydration 让用户不必等整页 hydrate 完成就能交互，React 会优先处理用户点击区域的 hydration。
 
 ---
 
-## 五、避免 mismatch Checklist
+## 避免 hydration mismatch
 
-| ☐ | 项 |
-|---|-----|
-| ☐ | 用 `useId` 代替 random id |
-| ☐ | 仅客户端 API 放 `useEffect` |
-| ☐ | 时区/语言 SSR 与 CSR 一致 |
-| ☐ | 勿 `typeof window` 分支渲染不同结构 |
+| 项 | 说明 |
+|-----|------|
+| 用 `useId` 代替 random id | SSR/CSR id 一致 |
+| 仅客户端 API 放 `useEffect` | window、localStorage 等 |
+| 时区/语言 SSR 与 CSR 一致 | 格式化时间要注意 |
+| 勿 `typeof window` 分支渲染不同结构 | 结构必须一致 |
 
 ```tsx
 // ❌ mismatch
@@ -109,9 +115,11 @@ useEffect(() => setTime(new Date().toLocaleString()), []);
 return <span>{time ?? '...'}</span>;
 ```
 
+服务端没有 `window`，依赖浏览器 API 的值应在 `useEffect` 里读取，首次 render 用占位符。
+
 ---
 
-## 六、与 RSC
+## 与 RSC
 
 **React Server Components** 在服务端跑，默认不 hydrate；Client Component 才 hydrate。
 
@@ -120,18 +128,12 @@ Server Component → HTML 片段，无 JS
 Client Component → 需 hydrate
 ```
 
-见 P2 模块 14。
+RSC 把服务端组件和客户端组件分开：Server Component 输出 HTML 片段无需 hydration，只有带 `'use client'` 的组件才需要在客户端 hydrate。
 
 ---
 
-## 七、小结
+## 小结
 
-| 术语 | |
-|------|--|
-| SSR | 服务端出 HTML |
-| Streaming | 分块发送 |
-| Hydration | 客户端接管 DOM |
-| mismatch | 输出不一致报错 |
+Streaming SSR 边生成边发送 HTML；hydration 对齐服务端与客户端输出，useId 和 effect 读 window 是防 mismatch 关键。
 
-**上一篇**：[03-Suspense与数据加载](./03-Suspense与数据加载.md)  
-**下一篇**：[05-Error-Boundary与错误恢复](./05-Error-Boundary与错误恢复.md)
+SSR 服务端出 HTML，浏览器用 `hydrateRoot` 绑定事件和 state；Streaming 分块发送，Suspense 边界控制慢块到达时机，改善 FCP/LCP。Selective Hydration 让用户在完全 hydrate 前就能交互，优先处理点击区域。防 mismatch：`useId` 代替随机 id、浏览器 API 放 useEffect、时区语言一致、避免 window 分支渲染不同结构。RSC 中 Server Component 不 hydrate，Client Component 才需要。实际 Streaming SSR 多用 Next.js/Remix 封装，不必手写 pipeToNodeWritable。

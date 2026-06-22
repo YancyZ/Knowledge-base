@@ -1,270 +1,157 @@
 # React 发展脉络与版本演进
 
-> 了解版本脉络，才能理解「为什么 Hooks 取代 class」「为什么 Concurrent」「RSC 解决什么」。不必背年份，要抓**每次变革要解决什么问题**。
+把 React 从 2013 到现在串成一条线，被问到 Fiber、Hooks、18 并发、19、RSC 时，能按**当时遇到了什么问题、官方怎么解的**来讲，而不是背版本号和发布时间。
 
 ---
 
-## 一、时间线总览
+## 从 Virtual DOM 说起
 
-```mermaid
-timeline
-  title React 主要里程碑
-  2013 : React 开源 : Virtual DOM 概念出圈
-  2015 : React Native : 同一套 React 心智跨 iOS/Android
-  2016 : v15 / 早期 Fiber 调研
-  2017 : v16.0 Fiber 架构上线 : 可中断渲染基础
-  2018 : v16.8 Hooks : 函数组件获得状态与副作用
-  2020 : v17 : 无新特性，平滑升级桥
-  2022 : v18 : 并发特性、自动批处理、SSR 改进
-  2023 : 文档重写 react.dev : 以函数组件 + Hooks 为主
-  2024 : v19 RC/正式 : Actions、RSC 生态强化、Compiler
-  持续 : Server Components : Next.js 等元框架深度集成
-```
-
-| 版本 | 发布时间（约） | 关键词 |
-|------|----------------|--------|
-| 0.3～15 | 2013–2016 | createClass、Mixin、PropTypes |
-| **16.0** | 2017 | **Fiber**、Error Boundary、Fragment |
-| 16.3 | 2018 | getDerivedStateFromProps、Context 新 API |
-| **16.8** | 2019 | **Hooks** |
-| 17 | 2020 | 渐进升级，事件委托改 root |
-| **18** | 2022 | **Concurrent**、useTransition、Suspense SSR |
-| **19** | 2024 | **Actions**、useOptimistic、ref 作 prop、Compiler |
-
----
-
-## 二、阶段一：Virtual DOM 时代（～2015）
-
-### 2.1 背景
-
-Facebook 新闻 Feed 需要频繁更新 UI，命令式 DOM 难维护。React 提出：
-
-1. 每次 state 变化，重新生成整棵 **Virtual DOM 树**
-2. **Diff** 新旧树，得到最小 DOM 操作集
-
-### 2.2 影响
-
-| 收益 | 代价 |
-|------|------|
-| 组件化 + 声明式成为主流 | Diff 有 CPU 成本（通常可接受） |
-| 跨平台可能（React Native） | 早期 API 混乱（createClass、Mixin） |
-
----
-
-## 三、阶段二：Fiber 架构（React 16）
-
-### 3.1 旧栈 reconciler 的局限
-
-React 15 及以前，协调过程是**同步递归**，一旦开始不能中断。大组件树更新会**长时间占用主线程**，导致输入卡顿。
-
-### 3.2 Fiber 是什么？
-
-**Fiber** 是 React 内部的**工作单元**（链表结构上的节点），把渲染拆成可**暂停、恢复、优先级调度**的小步。
-
-```mermaid
-flowchart TB
-  Old[旧 reconciler<br/>同步递归整棵树]
-  New[Fiber reconciler<br/>分片工作 + 优先级]
-  Old -->|问题：长任务阻塞| Block[掉帧 / 输入延迟]
-  New -->|可中断| Smooth[高优：输入 / 低优：列表]
-```
-
-| 对比 | 同步 reconciler | Fiber |
-|------|-----------------|-------|
-| 中断 | 不能 | 可以 |
-| 优先级 | 无 | 有（为 Concurrent 铺路） |
-| 数据结构 | 递归栈 | 链表 Fiber 节点 |
-
-深入见 [03-Fiber架构与可中断渲染](../06-渲染与调和/03-Fiber架构与可中断渲染.md)。
-
-### 3.3 16 同期重要 API
-
-| API | 作用 |
-|-----|------|
-| `Error Boundary` | 捕获子树渲染错误，避免整页白屏 |
-| `Fragment` `<>...</>` | 无多余 DOM 包裹 |
-| `Portals` | 渲染到 DOM 其他位置（模态框） |
-| 新 Context API | `createContext` / `useContext` 前身 |
-
----
-
-## 四、阶段三：Hooks 革命（16.8，2019）
-
-### 4.1 为什么要 Hooks？
-
-Class 组件的问题：
-
-| 问题 | 举例 |
-|------|------|
-| **逻辑难复用** | 复用要 HOC / render props，嵌套地狱 |
-| **生命周期割裂** | 订阅在 `componentDidMount`，清理在 `willUnmount`，相关逻辑分散 |
-| **`this` 绑定** | 新手易错 |
-| **热重载 / 优化** | class 较重 |
-
-Hooks 让**函数组件**拥有 state 与副作用，且相关逻辑可抽成**自定义 Hook**。
+React 刚出来时，打的是这套牌：用 JS 描述 UI（Virtual DOM），state 变了就重新算一遍描述，再 diff 出要改的真实 DOM。
 
 ```tsx
-// 同一逻辑：class 分散在多个生命周期
-// Hooks：集中在一个 useEffect
+function Counter() {
+  const [count, setCount] = useState(0);
+  return <button onClick={() => setCount(c => c + 1)}>{count}</button>;
+}
+```
+
+改的是 `count`，按钮文字怎么变，不必自己写 `textContent`。以前用 jQuery，数据和 DOM 是两套东西，改 count 还得记着改 label，页面一大就容易漏。Virtual DOM 换的是**开发模型**：只管 state，DOM 同步交给 React。
+
+容易误解的一点：Virtual DOM 不等于「一定比手写 DOM 快」。它有 diff 的 CPU 成本；早期 API（createClass、Mixin）也很乱。它首先是**声明式 + 可预测的更新路径**，性能是后面 Fiber、批处理、Compiler 继续优化的对象。
+
+---
+
+## Fiber：渲染终于能「让路了」（React 16）
+
+Virtual DOM 能用了，但 React 15 及以前的协调是**同步递归**，一旦开始更新大树，主线程得一口气跑完，输入、动画会卡。
+
+Fiber 就是为此来的：把渲染拆成链表上的小步，可以**暂停、恢复、按优先级排队**。用户点击是高优，后台筛大列表可以低优、晚点再算。不必背 Fiber 的链表结构，先记住它要解决的是**同步递归占满主线程**；链表实现属于源码层，日常开发只要理解「可中断、可排序」即可。
+
+```mermaid
+flowchart LR
+  Old[旧 reconciler 同步递归] --> Block[长任务占满主线程]
+  Fiber[Fiber 分片 + 优先级] --> Smooth[紧急的先做 不紧急的可让路]
+```
+
+同一时期还常碰到 Error Boundary、Fragment `<>...</>`、Portal、新 Context，和 Fiber 一起构成 16 时代的日常工具箱。
+
+---
+
+## Hooks：函数组件终于能当家（16.8）
+
+Class 组件的几类典型痛点：逻辑想复用得 HOC 套 HOC；订阅写在 `componentDidMount`、清理在 `willUnmount`，改需求要跳文件；`this` 还要 bind 来 bind 去。Hooks 的变化在于，**按「功能」写代码，而不是按「生命周期阶段」拆**。
+
+```tsx
 useEffect(() => {
   const sub = subscribe(userId);
   return () => sub.unsubscribe();
 }, [userId]);
 ```
 
-### 4.2 内置 Hooks 首次亮相
+挂载、清理、依赖变化重新订阅，全在一个 effect 里。新组件宜一律函数 + Hooks；class 仅在维护遗留代码时碰。
 
-| Hook | 替代 class 的 |
-|------|----------------|
-| `useState` | `this.state` / `setState` |
-| `useEffect` | `componentDidMount` / `Update` / `WillUnmount` |
-| `useContext` | `contextType` / Consumer |
-| `useReducer` | 复杂 state + `dispatch` |
-| `useRef` | 实例属性、DOM ref |
-| `useMemo` / `useCallback` | 性能优化 |
-| 等 | 见 [05-Hooks体系](../05-Hooks体系/) |
-
-### 4.3 规则
-
-1. 只在**顶层**调用 Hooks（不在 if/for 里）
-2. 只在 **React 函数**里调用（组件或自定义 Hook）
-
----
-
-## 五、React 17：过渡桥
-
-** intentionally 几乎无新特性**，便于：
-
-- 多版本 React 共存（微前端）
-- 升级 `@types/react`、事件系统（委托到 root）
-- 为 18 的 Concurrent 做准备
-
-| 变化 | 说明 |
-|------|------|
-| 事件委托 | 从 `document` 改为挂载 **root 容器** |
-| JSX Transform | 无需 `import React`（新编译器） |
-| 无新 Hooks | — |
-
----
-
-## 六、React 18：并发渲染（Concurrent）
-
-### 6.1 「并发」指什么？
-
-不是多线程，而是 React **可中断、可恢复**渲染，并根据**优先级**调度更新（例如用户输入优先于列表筛选）。
-
-```mermaid
-flowchart LR
-  U[用户输入] --> H[高优先级更新]
-  L[后台列表过滤] --> Low[低优先级更新]
-  H --> Paint[先响应输入]
-  Low --> Later[可延迟 / 可中断]
-```
-
-### 6.2 面向开发者的 API
-
-| API / 行为 | 作用 |
-|------------|------|
-| **自动批处理** | 异步回调里多次 setState 也合并一次渲染 |
-| `useTransition` | 标记「非紧急」更新 |
-| `useDeferredValue` | 延迟显示某值（如搜索框 vs 结果列表） |
-| **Suspense SSR** | 流式 HTML、`hydrateRoot` |
-| `StrictMode` 开发双调用 | 帮助发现不安全的副作用 |
-
-见 [12-并发与Suspense](../12-并发与Suspense/)。
-
-### 6.3 根 API 变化
+写 Hook 有两条铁律：**只在顶层调**（别放 if/for 里），**只在组件或自定义 Hook 里调**。在 if 里写 `useState` 会直接报错，Hook 调用顺序必须稳定。
 
 ```tsx
-// React 17
-import ReactDOM from 'react-dom';
-ReactDOM.render(<App />, document.getElementById('root'));
+// ❌
+if (loggedIn) {
+  const [user, setUser] = useState(null);
+}
 
-// React 18+
-import { createRoot } from 'react-dom/client';
-createRoot(document.getElementById('root')!).render(<App />);
+// ✅ 条件放在 Hook 外面或 JSX 里
+const [user, setUser] = useState(null);
+if (!loggedIn) return null;
 ```
 
----
-
-## 七、React 19 与 Compiler（2024+）
-
-### 7.1 主要特性（概览）
-
-| 特性 | 解决的问题 |
-|------|------------|
-| **Actions** | 表单/异步提交统一 pending、错误、乐观 UI |
-| `useActionState` | Action 状态机 |
-| `useOptimistic` | 乐观更新 |
-| **ref 作为 prop** | 少包一层 `forwardRef` |
-| **Document Metadata** | `<title>` 等内置支持 |
-| **React Compiler** | 编译期自动 memo，减手动 useMemo |
-
-详情见 [18-React19与新特性](../18-React19与新特性/)。
-
-### 7.2 React Compiler 直觉
-
-手动 `useMemo` / `memo` 易漏、过度。Compiler 分析组件与 Hooks 依赖，**自动插入**记忆化。与手写优化可共存，逐步推广。
+改 effect 依赖时，务必明确「这段逻辑依赖谁」，漏依赖会闭包拿旧值，乱填依赖会导致无限请求，都是高频 bug。
 
 ---
 
-## 八、Server Components（RSC）— 跨版本架构
+## React 17：故意「没什么新特性」
 
-RSC 不替代 Client Components，而是**默认在服务端运行**的组件，减少发到浏览器的 JS。
+17 几乎不加新 API，主要是让升级不那么疼：事件委托从 `document` 改到**挂载 root**，新 JSX 运行时不用 `import React`。微前端、渐进升级需要多版本共存，17 是到 18 的桥。
+
+项目若还停在 17，合理下一步是 18 + `createRoot`，而不是在 17 上继续堆新能力。升级后第三方库事件行为异常，要想到**委托位置变了**这一层。
+
+---
+
+## React 18：Fiber 的能力端到应用层
+
+18 把可中断、优先级真正开放：`useTransition`、`useDeferredValue` 标记「不着急的更新」；**自动批处理**也扩到 `setTimeout`、Promise 里的多次 setState。
+
+搜索框要立刻响应、大列表过滤可以慢半拍，这就是 transition 的典型场景。根 API 也要换，不然 18 特性用不全：
+
+```tsx
+// 旧 API 能跑，但等于没上 18
+ReactDOM.render(<App />, root);
+
+import { createRoot } from 'react-dom/client';
+createRoot(root).render(<App />); // ✅
+```
+
+开发态 Strict Mode **双调 effect**，应理解为帮暴露「清理没写干净」的副作用，不是 React 异常行为。
+
+**并发**容易想歪，不是多线程同时 render，仍是单线程，只是任务**可打断、可排序**。
+
+---
+
+## 19 与 Compiler：少手写 memo，表单有 Actions
+
+19 往 **Actions**（提交中、错误、乐观 UI）、`useOptimistic`、`ref` 当 prop（少包 `forwardRef`）、**React Compiler**（编译期自动 memo）走。
+
+手写 `useMemo` / `memo` 常落在两个极端：该加没加，或堆一堆可读性很差。Compiler 想把后者交给工具；Actions 是把各项目自己封装的「提交状态机」往官方模式收。宜按项目版本渐进采用；Compiler 未全面推广前，热点仍按 18 的方式显式优化。
+
+---
+
+## Server Components：取数放服务端，交互留客户端
+
+很多页大半是结构和读库，全发客户端 bundle 浪费。**Server Component** 在服务端跑，默认不下发组件 JS；要 state、事件、`useEffect` 的标 `'use client'`。
 
 ```mermaid
 flowchart TB
-  Server[Server Component<br/>读 DB / 文件系统]
-  Client[Client Component<br/>'use client' 交互]
-  Server -->|props 序列化| Client
-  Client -->|事件、state| Browser[浏览器]
+  SC[Server Component 读库/读文件]
+  CC[Client Component 点击 state effect]
+  SC -->|序列化 props| CC
 ```
 
-| 类型 | 运行位置 | 典型用途 |
-|------|----------|----------|
-| Server Component | 服务端 | 取数、静态结构 |
-| Client Component | 浏览器 | 点击、state、useEffect |
-
-见 [14-服务端与元框架](../14-服务端与元框架/03-React-Server-Components.md)。
+硬规则：`useState` 不能写进 Server Component。在 SC 里 import 操作 `window` 的库，构建或运行会报错。用 App Router 类方案时，先判断「这块能不能 server」。
 
 ---
 
-## 九、文档与生态变迁
+## 文档和工具链的变迁
 
-| 时期 | 文档 | 特点 |
-|------|------|------|
-| 旧 | reactjs.org | class 示例多 |
-| 现 | **react.dev** | Hooks 优先、Sandpack 示例、RSC 章节 |
-
-| 工具 | 变迁 |
-|------|------|
-| 脚手架 | CRA（维护模式）→ **Vite** / **Next.js** |
-| 状态 | Flux → Redux → Redux Toolkit + **TanStack Query** + **Zustand** |
-| 路由 | React Router 4/5 → **v6/v7** 数据路由 |
+| 以前 | 现在默认 |
+|------|----------|
+| reactjs.org + class 示例 | react.dev，Hooks 优先 |
+| CRA | Vite / Next.js |
+| 什么都 Redux | Query 管服务端状态 + 轻量 store |
 
 ---
 
-## 十、升级策略建议
+## 升级时的合理顺序
 
-| 当前版本 | 建议 |
-|----------|------|
-| &lt; 16.8 | 先升到 16.8+ 并迁 Hooks，再 18 |
-| 16.8～17 | 换 `createRoot`，开 Strict Mode 测副作用 |
-| 18 | 评估 19、Compiler；Next App Router 可渐进 RSC |
-| 类组件多 | 新功能用函数组件；旧代码见 [17-类组件与迁移](../17-类组件与迁移/) |
+很老、还在 class → 先 16.8+ 迁 Hooks，再 18。16.8～17 → 换 `createRoot`，Strict Mode 查 effect。18 → 按需 19、Compiler、RSC。
+
+不宜追求「一次升到最新」，**分步、每步可测**更稳。
 
 ---
 
-## 十一、小结
+## 小结
 
-| 演进 | 驱动力 |
-|------|--------|
-| Virtual DOM | 声明式 + 可预测更新 |
-| Fiber | 可中断、为性能与 Concurrent 打基础 |
-| Hooks | 逻辑复用、函数组件一统 |
-| Concurrent | 保持输入响应、改善 UX |
-| RSC | 减 bundle、数据靠近源 |
-| 19 + Compiler | 简化异步表单、减手动优化 |
+React 演进有一条清晰主线：**声明式 UI（Virtual DOM）→ 可中断调度（Fiber）→ 函数组件统一（Hooks）→ 并发体验与自动批处理（18）→ 服务端/编译器分工（RSC、Compiler、19）**。记版本时，把每个节点和「它解什么痛」绑在一起，比背发布年份有用得多。
 
-**上一篇**：[01-React是什么与核心思想](./01-React是什么与核心思想.md)  
-**下一篇**：[03-开发环境与项目结构](./03-开发环境与项目结构.md)
+**Virtual DOM** 解决的是命令式 DOM 同步负担，不是天然的性能银弹；diff 有成本，性能靠后续架构和工具链继续挖。
+
+**Fiber** 解决同步递归占满主线程；理解「可中断、有优先级」即可，不必先啃源码链表。
+
+**Hooks** 解决 class 逻辑复用难、生命周期割裂；函数组件成为默认写法。Hook 规则（顶层、仅在 React 函数内）和 effect 依赖写法是日常排错重点。
+
+**17** 是升级桥，**18** 把并发 API 和 `createRoot` 推到台前；「并发」是单线程调度，不是多线程。
+
+**19 / Compiler** 方向是少手写 memo、表单 Actions 标准化；**RSC** 方向是取数在服务端、交互在客户端，Server Component 里不能写客户端 Hook。
+
+**生态侧**：文档以 react.dev 和 Hooks 为准，脚手架以 Vite/Next 为主，服务端状态宜交给 Query 类库而不是全塞 Redux。
+
+**升级策略**：先 Hooks、再 `createRoot`、再 19/RSC；遗留 class 分步迁移，每步可回归测试。
+
+**易混点备忘**：Virtual DOM ≠ 一定更快；Concurrent ≠ 多线程；Strict Mode 双调 effect ≠ 生产行为；Server Component ≠ 整站只能在服务端写组件。

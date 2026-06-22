@@ -1,10 +1,10 @@
 # SSR、CSR 与元框架选型
 
-> **CSR** 在浏览器跑 React；**SSR** 在服务端先出 HTML 再 hydrate。**元框架**（Next.js、Remix 等）把路由、SSR、数据层打包成开箱方案——选型取决于 SEO、首屏、团队栈。
+**CSR** 在浏览器跑 React；**SSR** 在服务端先出 HTML 再 hydrate。**元框架**（Next.js、Remix 等）把路由、SSR、数据层打包成开箱方案，选型取决于 SEO、首屏、团队栈。
 
 ---
 
-## 一、三种渲染模式
+## 三种渲染模式
 
 ```mermaid
 flowchart TB
@@ -33,9 +33,11 @@ flowchart TB
 | **SSG** | 构建时 | 文档、营销页 |
 | **ISR** | SSG + 定时/按需重建 | 内容站、电商列表 |
 
+CSR 首屏依赖 JS 下载执行；SSR 每次请求服务端出 HTML；SSG 构建时生成静态 HTML；ISR 在 SSG 基础上定时或按需重建。
+
 ---
 
-## 二、对比表
+## 对比表
 
 | 维度 | CSR (Vite SPA) | SSR (Next.js 等) |
 |------|----------------|------------------|
@@ -47,7 +49,7 @@ flowchart TB
 
 ---
 
-## 三、何时选 SPA（CSR）
+## 何时选 SPA（CSR）
 
 | ✅ 适合 | 说明 |
 |---------|------|
@@ -59,11 +61,11 @@ flowchart TB
 pnpm create vite my-app --template react-ts
 ```
 
-见 [01-开发环境](../01-认知与生态/03-开发环境与项目结构.md)。
+Vite + React Router + TanStack Query 是 CSR 的成熟组合，适合登录后中后台和强交互 SPA。
 
 ---
 
-## 四、何时选元框架（SSR/RSC）
+## 何时选元框架（SSR/RSC）
 
 | ✅ 适合 | 说明 |
 |---------|------|
@@ -80,7 +82,7 @@ pnpm create vite my-app --template react-ts
 
 ---
 
-## 五、决策流程
+## 决策流程
 
 ```mermaid
 flowchart TD
@@ -93,9 +95,11 @@ flowchart TD
   SSR --> Next[Next.js App Router 等]
 ```
 
+不需要 SEO 和首屏 HTML → Vite SPA；需要 SEO 且内容更新频率低 → SSG；需要个性化或高频更新 → SSR/RSC。
+
 ---
 
-## 六、混合架构
+## 混合架构
 
 | 模式 | 例子 |
 |------|------|
@@ -103,24 +107,12 @@ flowchart TD
 | 微前端 | 主应用 CSR，子应用独立 |
 | BFF | 前端 SPA，Node BFF 聚合 API |
 
----
-
-## 七、与已有模块关系
-
-| 话题 | 文档 |
-|------|------|
-| Streaming / hydrate | [12-Streaming-SSR](../12-并发与Suspense/04-Streaming-SSR与hydration.md) |
-| 客户端数据 | [09-Query](../09-数据获取与缓存/) |
-| 路由 | [10-React Router](../10-路由/) |
+不必全站统一一种模式。landing 页 SSR 换 SEO，产品区 CSR 换开发效率，是常见混合方案。
 
 ---
 
-## 八、小结
+## 小结
 
-| 记住 | |
-|------|--|
-| CSR = 简单、托管便宜 | |
-| SSR/SSG = SEO + 首屏 | |
-| 元框架 = 集成路由与数据 | |
+CSR 简单便宜，SSR/SSG 换 SEO 和首屏；元框架把路由、数据、部署打包成开箱方案。
 
-**下一篇**：[02-SSR基础与请求生命周期](./02-SSR基础与请求生命周期.md)
+四种渲染模式：CSR（浏览器出 DOM）、SSR（请求时服务端出 HTML）、SSG（构建时生成）、ISR（SSG + 定时重建）。CSR 适合中后台和强交互 SPA，静态托管成本低；SSR/RSC 适合 SEO、首屏 LCP 和全栈同仓。选型：不需 SEO → Vite SPA；需 SEO 且内容稳定 → SSG；需个性化 → SSR + Next.js 等元框架。混合架构常见：landing SSR + 产品 CSR、微前端、BFF 聚合。元框架把路由、数据获取、部署集成，降低 SSR 上手成本。

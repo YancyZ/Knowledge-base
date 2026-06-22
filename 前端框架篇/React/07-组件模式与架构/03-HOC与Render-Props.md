@@ -1,10 +1,10 @@
 # HOC 与 Render Props
 
-> **高阶组件（HOC）** 与 **Render Props** 是 Hooks 时代之前的逻辑复用模式。新代码优先 **自定义 Hook**；维护遗留库与理解 Radix 等仍需要认识它们。
+**HOC** 和 **Render Props** 是 Hooks 之前复用逻辑的主流模式。新项目应优先**自定义 Hook**；维护遗留代码、阅读 Radix 等库源码时，仍需认识这两种写法。
 
 ---
 
-## 一、高阶组件（HOC）
+## 高阶组件（HOC）
 
 **HOC**：接收组件，返回增强后的新组件。
 
@@ -35,7 +35,7 @@ flowchart LR
 | 注入数据 | connect (Redux 旧) |
 | 日志 | withLogger |
 
-### 1.1 HOC 约定
+### HOC 约定
 
 | 规则 | 原因 |
 |------|------|
@@ -43,7 +43,7 @@ flowchart LR
 | 复制 displayName | DevTools 可读 `WithAuth(Dashboard)` |
 | 不要在内层改 ref | 用 forwardRef 或 Hook |
 
-### 1.2 HOC 缺点
+### HOC 缺点
 
 | 缺点 | 表现 |
 |------|------|
@@ -55,7 +55,7 @@ flowchart LR
 
 ---
 
-## 二、Render Props
+## Render Props
 
 ```tsx
 function MouseTracker({
@@ -90,7 +90,7 @@ function MouseTracker({
 
 ---
 
-## 三、Hooks 替代
+## Hooks 替代
 
 ```tsx
 function useMouse() {
@@ -113,7 +113,7 @@ function useMouse() {
 
 ---
 
-## 四、何时仍会遇到
+## 何时仍会遇到
 
 | 来源 | 说明 |
 |------|------|
@@ -123,13 +123,10 @@ function useMouse() {
 
 ---
 
-## 五、小结
+## 小结
 
-| 模式 | 记忆 |
-|------|------|
-| HOC | 包一层组件 |
-| Render Props | render={(data) => ...} |
-| 新项目 | 自定义 Hook |
+**HOC**：`(Component) => EnhancedComponent`，注入 props；注意 ref 转发与 displayName。**Render Props**：通过 render 函数注入数据，易产生嵌套。
 
-**上一篇**：[02-容器与展示分离](./02-容器与展示分离.md)  
-**下一篇**：[04-插槽-多态与as-prop](./04-插槽-多态与as-prop.md)
+**新项目优先自定义 Hook** 复用逻辑，类型与组合更清晰。维护遗留代码、阅读 Radix 源码时仍需认识 HOC 与 Render Props。
+
+常见错因：HOC 嵌套是否导致 props 来源难追踪？能否用 Hook 或路由守卫替代 withAuth？

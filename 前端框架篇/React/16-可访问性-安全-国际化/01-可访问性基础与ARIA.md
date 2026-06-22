@@ -1,10 +1,10 @@
 # 可访问性基础与 ARIA
 
-> **可访问性（a11y）** 让视障、键盘用户、认知障碍用户也能用你的 React 应用。**语义 HTML 优先**，不够时再补 **ARIA**——且 ARIA 不能替代错误语义。
+**可访问性（a11y）** 让视障、键盘用户、认知障碍用户也能用 React 应用。**语义 HTML 优先**，不够时再补 **ARIA**，且 ARIA 不能替代错误语义。
 
 ---
 
-## 一、为什么 React 项目要关心 a11y？
+## 为什么 React 项目要关心 a11y
 
 ```mermaid
 flowchart LR
@@ -25,9 +25,11 @@ flowchart LR
 | **SEO/体验** | 语义化利于爬虫与语音助手 |
 | **工程质量** | label、focus 清晰 → 测试也更稳（RTL `getByRole`） |
 
+React 只是生成 DOM，**浏览器和读屏器看的是 DOM**。a11y 好意味着 RTL 的 getByRole 也能稳定工作。
+
 ---
 
-## 二、WCAG 四原则（POUR）
+## WCAG 四原则（POUR）
 
 | 原则 | 英文 | 例子 |
 |------|------|------|
@@ -40,7 +42,7 @@ flowchart LR
 
 ---
 
-## 三、语义 HTML 优先
+## 语义 HTML 优先
 
 ```tsx
 // ❌ div 冒充按钮
@@ -58,11 +60,9 @@ flowchart LR
 | 列表 | `<ul>` / `<ol>` |
 | 表单 | `<label>` + `<input>` |
 
-React 只是生成 DOM，**浏览器和读屏器看的是 DOM**。
-
 ---
 
-## 四、ARIA 是什么？
+## ARIA 是什么
 
 **Accessible Rich Internet Applications**：用属性补充语义。
 
@@ -91,7 +91,7 @@ React 只是生成 DOM，**浏览器和读屏器看的是 DOM**。
 
 ---
 
-## 五、第一规则：能用原生就不乱用 ARIA
+## 第一规则：能用原生就不乱用 ARIA
 
 > **No ARIA is better than bad ARIA.**
 
@@ -103,9 +103,9 @@ React 只是生成 DOM，**浏览器和读屏器看的是 DOM**。
 
 ---
 
-## 六、React 中的常见模式
+## React 中的常见模式
 
-### 6.1 图标按钮
+### 图标按钮
 
 ```tsx
 <button type="button" aria-label="关闭">
@@ -113,7 +113,7 @@ React 只是生成 DOM，**浏览器和读屏器看的是 DOM**。
 </button>
 ```
 
-### 6.2 表单错误
+### 表单错误
 
 ```tsx
 const id = useId();
@@ -125,9 +125,9 @@ const id = useId();
 </>
 ```
 
-见 [05-useId](../05-Hooks体系/06-useId-useSyncExternalStore等.md)。
+useId 生成唯一 id，关联 label、input 和错误提示。
 
-### 6.3 动态内容
+### 动态内容
 
 ```tsx
 <div aria-live="polite" aria-atomic="true">
@@ -142,7 +142,7 @@ const id = useId();
 
 ---
 
-## 七、检测工具
+## 检测工具
 
 | 工具 | 用途 |
 |------|------|
@@ -153,12 +153,8 @@ const id = useId();
 
 ---
 
-## 八、小结
+## 小结
 
-| 优先级 | |
-|--------|--|
-| 1 语义 HTML | |
-| 2 label / 键盘 | |
-| 3 ARIA 补缺口 | |
+语义 HTML 优先，ARIA 补缺口；label、键盘、aria-live 是 React a11y 三板斧。
 
-**下一篇**：[02-键盘导航与焦点管理](./02-键盘导航与焦点管理.md)
+a11y 动机：合规（WCAG AA）、扩大用户面、SEO 和测试稳定性。WCAG 四原则 POUR：可感知、可操作、可理解、健壮。语义 HTML 优先于 div+role：button、h1-h6、nav、main、label+input。ARIA 补充语义：role、aria-label、aria-expanded、aria-live 等；规则是 No ARIA is better than bad ARIA。React 常见模式：图标按钮 aria-label、表单 useId+aria-invalid+role="alert"、动态内容 aria-live。检测：eslint-jsx-a11y、axe、Lighthouse、读屏器真机测。

@@ -1,10 +1,10 @@
 # SWR 与 Alternatives 对比
 
-> **SWR**（stale-while-revalidate）与 TanStack Query 解决同一类问题，API 更短。了解差异后，团队可统一选型，避免混用两套 cache。
+TanStack Query 与 SWR 都是服务端 cache 方案，API 与默认策略略有不同。**团队应统一一种**，勿在同一页面混用两套 cache 管同一数据。
 
 ---
 
-## 一、SWR 最小示例
+## SWR 最小示例
 
 ```bash
 pnpm add swr
@@ -32,7 +32,7 @@ function Profile() {
 
 ---
 
-## 二、缓存策略对比
+## 缓存策略对比
 
 ```mermaid
 flowchart TB
@@ -60,7 +60,7 @@ flowchart TB
 
 ---
 
-## 三、SWR 常用 API
+## SWR 常用 API
 
 ```tsx
 // 条件请求
@@ -77,7 +77,7 @@ mutate('/api/todos', optimisticData, { revalidate: false });
 
 ---
 
-## 四、何时选 SWR？
+## 何时选 SWR？
 
 | 选 SWR | 选 TanStack Query |
 |--------|-------------------|
@@ -89,18 +89,18 @@ mutate('/api/todos', optimisticData, { revalidate: false });
 
 ---
 
-## 五、其他方案
+## 其他方案
 
 | 方案 | 场景 |
 |------|------|
-| **RTK Query** | 已深度使用 Redux，见 [08-Redux](../08-状态管理/04-Redux-Toolkit与RTK-Query.md) |
+| **RTK Query** | 已深度使用 Redux |
 | **Apollo / urql** | GraphQL |
 | **tRPC + Query** | 全栈 TS，端到端类型 |
 | **Relay** | 大型 GraphQL、Facebook 栈 |
 
 ---
 
-## 六、迁移对照表
+## 迁移对照表
 
 | TanStack Query | SWR |
 |----------------|-----|
@@ -112,7 +112,7 @@ mutate('/api/todos', optimisticData, { revalidate: false });
 
 ---
 
-## 七、与 React 19 / RSC
+## 与 React 19 / RSC
 
 | 环境 | 说明 |
 |------|------|
@@ -120,17 +120,12 @@ mutate('/api/todos', optimisticData, { revalidate: false });
 | **RSC** | 首屏可在服务端 fetch，客户端 hydration 后仍可用 Query 做交互 refetch |
 | **Server Actions** | 写操作可走 Action + `revalidatePath`，与 Query invalidate 配合 |
 
-见 [14-服务端与元框架](../14-服务端与元框架/)（P2）。
-
 ---
 
-## 八、小结
+## 小结
 
-| 结论 | |
-|------|--|
-| 默认推荐 | **TanStack Query**（功能、工具链） |
-| 轻量替代 | **SWR** |
-| 原则 | 一种服务端 cache 策略打到底 |
+**TanStack Query** 功能与 DevTools 更全，**中后台默认推荐**。**SWR** API 更短，适合轻量或 Next 生态已有 SWR 的项目。
 
-**上一篇**：[03-Query与Mutation实战模式](./03-Query与Mutation实战模式.md)  
-**下一篇**：[05-请求封装-错误与重试策略](./05-请求封装-错误与重试策略.md)
+**原则**：一种服务端 cache 策略打到底，勿 Query + SWR 混用同一数据。RTK Query 适合已深度使用 Redux 的团队。
+
+常见错因：同一数据是否被 Query 与 SWR 各缓存一份？迁移时 API 如何一一对照？

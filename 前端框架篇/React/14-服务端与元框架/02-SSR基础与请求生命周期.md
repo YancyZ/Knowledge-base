@@ -1,10 +1,10 @@
 # SSR 基础与请求生命周期
 
-> 一次 **SSR 请求**：服务端执行 React → 输出 HTML + 序列化数据 → 浏览器加载 JS → **hydrate** 绑定事件。理解这条链，才能排查 hydration 与数据不一致。
+一次 **SSR 请求**：服务端执行 React → 输出 HTML + 序列化数据 → 浏览器加载 JS → **hydrate** 绑定事件。理解这条链，才能排查 hydration 与数据不一致。
 
 ---
 
-## 一、请求生命周期
+## 请求生命周期
 
 ```mermaid
 sequenceDiagram
@@ -27,9 +27,11 @@ sequenceDiagram
 | JS 加载完 | hydrate |
 | hydrate 完成 | 点击、输入正常 |
 
+HTML 先到用户可见内容，但交互要等 JS 加载和 hydrate 完成。Streaming 可以让 shell 更早到达。
+
 ---
 
-## 二、renderToString vs Streaming
+## renderToString vs Streaming
 
 | API | 特点 |
 |-----|------|
@@ -49,11 +51,11 @@ const { pipe } = renderToPipeableStream(<App />, {
 });
 ```
 
-实际项目用 **Next.js / Remix** 封装，少手写。
+实际项目用 **Next.js / Remix** 封装，少手写。Streaming 配合 Suspense 不必等慢数据就绪才发送 HTML。
 
 ---
 
-## 三、脱水与注水（Dehydrate / Hydrate）
+## 脱水与注水（Dehydrate / Hydrate）
 
 | 术语 | 含义 |
 |------|------|
@@ -67,11 +69,11 @@ const { pipe } = renderToPipeableStream(<App />, {
 </script>
 ```
 
-客户端读此数据避免重复 fetch（框架各异）。
+客户端读此数据避免重复 fetch（框架各异）。脱水数据让 SSR 和 CSR 首次 render 使用同一份数据。
 
 ---
 
-## 四、SSR 数据加载方式
+## SSR 数据加载方式
 
 | 方式 | 框架 |
 |------|------|
@@ -80,11 +82,11 @@ const { pipe } = renderToPipeableStream(<App />, {
 | async Server Component | Next App Router |
 | 手动 fetch + render | 自建 Node |
 
-**原则**：服务端用的数据与客户端首次 render **必须一致**。
+**原则**：服务端用的数据与客户端首次 render **必须一致**。不一致会导致 hydration mismatch 或双倍 fetch。
 
 ---
 
-## 五、常见坑
+## 常见坑
 
 | 坑 | 原因 | 处理 |
 |----|------|------|
@@ -95,7 +97,7 @@ const { pipe } = renderToPipeableStream(<App />, {
 
 ---
 
-## 六、每请求隔离状态
+## 每请求隔离状态
 
 ```tsx
 // ❌ 模块级单例 — 请求间串数据
@@ -110,9 +112,11 @@ export function createRequestContext() {
 }
 ```
 
+SSR 每请求独立，模块级单例会导致请求间数据串扰。QueryClient、用户 session 等应每请求创建。
+
 ---
 
-## 七、CSR 降级
+## CSR 降级
 
 部分场景 SSR 失败可降级 CSR：
 
@@ -122,16 +126,12 @@ onShellError(error) {
 }
 ```
 
+Streaming SSR 的 `onShellError` 可捕获 shell 渲染失败，降级 CSR 或返回错误页。
+
 ---
 
-## 八、小结
+## 小结
 
-| 步骤 | |
-|------|--|
-| 服务端 render HTML | |
-| 可选流式 + Suspense | |
-| 客户端 hydrate | |
-| 数据脱水对齐 | |
+SSR 请求链：服务端 render → HTML → hydrate → 可交互；每请求隔离 state，脱水数据对齐防双倍 fetch。
 
-**上一篇**：[01-SSR-CSR与元框架选型](./01-SSR-CSR与元框架选型.md)  
-**下一篇**：[03-React-Server-Components](./03-React-Server-Components.md)
+SSR 生命周期：请求 → 服务端 render（renderToString 或 Streaming）→ HTML + 脱水数据 → 浏览器显示 → 加载 client.js → hydrateRoot → 可交互。Streaming 配合 Suspense 分块发送，改善 TTFB 和 FCP。Dehydrate 序列化状态进 HTML，Hydrate 对齐 DOM 并挂事件。数据加载方式因框架而异，核心原则是 SSR 与 CSR 首次 render 数据一致。常见坑：hydration mismatch（useId、effect 读 window）、双倍 fetch（脱水对齐）、慢 TTFB（Streaming）、请求间串数据（每请求隔离 QueryClient）。SSR 失败可降级 CSR。

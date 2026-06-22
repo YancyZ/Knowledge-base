@@ -1,10 +1,10 @@
 # Redux Toolkit 与 RTK Query
 
-> **Redux Toolkit（RTK）** 简化 Redux 样板代码；**RTK Query** 内置数据请求与缓存。适合大型团队、需要时间旅行调试、已有 Redux 投资的项目。
+Redux 适合**已有 Redux 投资、强规范、复杂 reducer 流程**的团队；新项目若无 Redux 包袱，多数选 **TanStack Query + Zustand** 更轻； RTK createSlice、RTK Query，以及与 TanStack Query 的分工。
 
 ---
 
-## 一、何时选 Redux？
+## 何时选 Redux？
 
 ```mermaid
 flowchart TD
@@ -24,7 +24,7 @@ flowchart TD
 
 ---
 
-## 二、RTK Store 基础
+## RTK Store 基础
 
 ```tsx
 import { configureStore, createSlice } from '@reduxjs/toolkit';
@@ -57,7 +57,7 @@ type AppDispatch = typeof store.dispatch;
 
 ---
 
-## 三、在 React 中使用
+## 在 React 中使用
 
 ```tsx
 import { Provider, useSelector, useDispatch } from 'react-redux';
@@ -87,7 +87,7 @@ const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
 ---
 
-## 四、RTK Query
+## RTK Query
 
 ```tsx
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
@@ -129,7 +129,7 @@ const store = configureStore({
 
 ---
 
-## 五、RTK Query vs TanStack Query
+## RTK Query vs TanStack Query
 
 | | RTK Query | TanStack Query |
 |---|-----------|----------------|
@@ -142,7 +142,7 @@ const store = configureStore({
 
 ---
 
-## 六、中间件与异步
+## 中间件与异步
 
 ```tsx
 // 旧：redux-thunk
@@ -156,13 +156,10 @@ export const fetchUser = createAsyncThunk('users/fetch', async (id: string) => {
 
 ---
 
-## 七、小结
+## 小结
 
-| 组件 | 职责 |
-|------|------|
-| createSlice | 客户端同步 state |
-| RTK Query | 服务端 cache |
-| Provider | 注入 React |
+**RTK createSlice**：客户端同步 state（UI、权限缓存等）；**RTK Query**：可选的服务端 cache 层。新项目服务端数据更常选 **TanStack Query**；Redux 适合已有投资、强规范、DevTools 时间旅行。
 
-**上一篇**：[03-Zustand与轻量全局状态](./03-Zustand与轻量全局状态.md)  
-**下一篇**：[05-Jotai-Recoil等原子化状态](./05-Jotai-Recoil等原子化状态.md)
+**Provider** 注入 store；组件用 **useSelector** 细订阅。勿 Redux 与 Query 双缓存同一 API 数据。
+
+常见错因：是否已有 Redux 才值得上 RTK Query？同一 API 是否被 Redux 与 Query 各缓存一份？

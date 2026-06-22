@@ -1,10 +1,10 @@
 # Web Vitals 与体验指标
 
-> **Core Web Vitals** 是 Google 定义的页面体验核心指标。React 优化最终要落到 **LCP、INP、CLS** 等可测量数字上，而不只是「感觉快了」。
+**Core Web Vitals** 是 Google 定义的页面体验核心指标。React 优化最终要落到 **LCP、INP、CLS** 等可测量数字上，而不只是「感觉快了」。
 
 ---
 
-## 一、Core Web Vitals  trio
+## Core Web Vitals 三指标
 
 ```mermaid
 flowchart LR
@@ -19,9 +19,11 @@ flowchart LR
 | **INP** | 点击到响应（取代 FID） | ≤ 200ms |
 | **CLS** | 视觉稳定性 | ≤ 0.1 |
 
+三个指标分别对应加载、交互、视觉稳定。优化要有目标数字，Profiler 找组件问题，web-vitals 验证真实用户侧体验。
+
 ---
 
-## 二、LCP 与 React
+## LCP 与 React
 
 LCP 元素常见：大图片、标题块、首屏 hero。
 
@@ -37,9 +39,11 @@ LCP 元素常见：大图片、标题块、首屏 hero。
 <img src={hero} fetchPriority="high" alt="" />
 ```
 
+LCP 慢常见原因是 JS bundle 过大阻塞解析，或 LCP 图片加载优先级不够。首屏 heavy 组件应 lazy，LCP 图反而要优先加载、不要 lazy。
+
 ---
 
-## 三、INP 与 React
+## INP 与 React
 
 INP 关注**整页**交互延迟（多次交互最差分位）。
 
@@ -65,16 +69,16 @@ function Search() {
 }
 ```
 
-见 [12-useTransition](../12-并发与Suspense/02-useTransition与useDeferredValue.md)。
+INP 差通常是主线程被长任务占满。大列表同步过滤、每次按键全树 render 都会拉高 INP；`startTransition` 让输入保持高优先级。
 
 ---
 
-## 四、CLS 与 React
+## CLS 与 React
 
 布局偏移：图片无尺寸、字体 swap、动态插入 banner。
 
 | 做法 | |
-|------|--|
+|------|，|
 | 图片 width/height 或 aspect-ratio | |
 | 骨架屏占位 | Suspense fallback 固定高 |
 | 勿顶部突然插入通知条 | 预留空间或 fixed |
@@ -85,9 +89,11 @@ function Search() {
 </Suspense>
 ```
 
+异步内容加载后撑开布局是 CLS 常见来源。Suspense fallback 应预留与实际内容相近的高度。
+
 ---
 
-## 五、其他常用指标
+## 其他常用指标
 
 | 指标 | 含义 |
 |------|------|
@@ -95,9 +101,11 @@ function Search() {
 | **TTFB** | 首字节（偏后端/CDN） |
 | **TTI** | 可交互（旧，参考用） |
 
+FCP 比 LCP 更早，TTFB 偏后端和 CDN，优化时要分清前后端责任。
+
 ---
 
-## 六、测量方式
+## 测量方式
 
 ```tsx
 import { onLCP, onINP, onCLS } from 'web-vitals';
@@ -113,11 +121,11 @@ onCLS(metric => reportToAnalytics(metric));
 | Chrome UX Report | 真实用户场数据 |
 | web-vitals 库 | 生产 RUM 上报 |
 
-与 [前端工程化 · 性能优化与监控](../../前端工程化体系/06-性能优化与监控.md) 衔接。
+Lighthouse 适合本地单次评估；生产环境用 web-vitals 库上报 RUM 数据，才能反映真实用户网络和设备。
 
 ---
 
-## 七、React 专项 Checklist
+## React 专项优化要点
 
 | LCP | INP | CLS |
 |-----|-----|-----|
@@ -127,13 +135,8 @@ onCLS(metric => reportToAnalytics(metric));
 
 ---
 
-## 八、小结
+## 小结
 
-| 记住 | |
-|------|--|
-| 优化要对指标 | |
-| LCP 首屏、INP 交互、CLS 稳定 | |
-| Profiler + web-vitals 结合 | |
+React 优化最终要落到 LCP、INP、CLS 等可测量指标；Profiler 找组件问题，web-vitals 验证用户侧体验。
 
-**上一篇**：[04-虚拟列表与大数据渲染](./04-虚拟列表与大数据渲染.md)  
-**下一篇**：[06-性能优化Checklist](./06-性能优化Checklist.md)
+Core Web Vitals 三个核心指标：LCP（主内容 ≤2.5s）、INP（交互 ≤200ms）、CLS（布局稳定 ≤0.1）。React 侧 LCP 靠路由 lazy、SSR 首屏、LCP 图高优先级加载；INP 靠减 render、虚拟列表、`startTransition` 避免 sync 重活；CLS 靠图片尺寸、Suspense 骨架固定高、避免动态插入撑布局。用 web-vitals 库生产上报，Lighthouse 做实验室评估。优化要对指标，Profiler 和 web-vitals 结合使用，前者定位组件级问题，后者验证用户真实体验。

@@ -1,28 +1,10 @@
 # 样式方案与 CSS-in-JS
 
-> React 不规定样式怎么写。团队要在 **作用域、运行时成本、RSC 兼容、设计系统** 之间做选型。本篇对比主流方案并给出组合建议。
+React 不规定怎么写样式，选方案要看作用域、主题、动态样式、运行时成本和是否用 Server Components；按四维需求对比主流方案，并给出 SPA 与中后台的默认组合。
 
 ---
 
-## 一、样式需求拆解
-
-```mermaid
-mindmap
-  root((React 样式))
-    作用域
-      避免全局污染
-      组件级隔离
-    主题
-      暗色模式
-      Design Token
-    动态
-      props 驱动
-      伪类 hover
-    工程
-      构建时提取
-      包体积
-      RSC 兼容
-```
+## 样式需求拆解
 
 | 需求 | 说明 |
 |------|------|
@@ -30,11 +12,25 @@ mindmap
 | **动态** | `disabled`、`size` 变样式 |
 | **主题** | 色板、间距统一 |
 | **性能** | 少运行时、少 CSS 体积 |
-| **DX** | 与组件同文件 or 分离 |
+| **RSC** | Server Component 能否直接用 |
+
+```mermaid
+mindmap
+  root((React 样式))
+    作用域
+      避免全局污染
+    主题
+      Design Token
+    动态
+      props 驱动
+    工程
+      构建时提取
+      RSC 兼容
+```
 
 ---
 
-## 二、方案总览
+## 方案总览
 
 | 方案 | 运行时 | RSC 友好 | 典型工具 |
 |------|--------|----------|----------|
@@ -47,7 +43,9 @@ mindmap
 
 ---
 
-## 三、全局 CSS
+## 全局 CSS 与 CSS Modules
+
+**全局 CSS** 适合 reset、字体、CSS 变量 token：
 
 ```tsx
 // main.tsx
@@ -55,31 +53,20 @@ import './index.css';
 ```
 
 ```css
-/* index.css */
 :root {
   --color-primary: #1677ff;
 }
 body { margin: 0; font-family: system-ui, sans-serif; }
 ```
 
-| 适用 | 重置样式、字体、CSS 变量 token |
-| 注意 | 类名易冲突；组件专用样式别全放全局 |
+组件专用样式不宜全堆全局，易冲突。
 
----
-
-## 四、CSS Modules（推荐默认之一）
-
-文件：`Button.module.css`
+**CSS Modules** 是 SPA 的推荐默认之一，零运行时、作用域清晰：
 
 ```css
-.root {
-  padding: 8px 16px;
-  border-radius: 6px;
-}
-.primary {
-  background: var(--color-primary);
-  color: #fff;
-}
+/* Button.module.css */
+.root { padding: 8px 16px; border-radius: 6px; }
+.primary { background: var(--color-primary); color: #fff; }
 ```
 
 ```tsx
@@ -97,18 +84,11 @@ function Button({ primary, children }: { primary?: boolean; children: React.Reac
 }
 ```
 
-Vite 编译后类名类似 `_root_x7s9a_1`，**局部作用域**。
-
-| 优点 | 缺点 |
-|------|------|
-| 零运行时、简单 | 动态样式要写多 class 或 CSS 变量 |
-| 与 RSC 无冲突 | 主题切换靠变量或额外方案 |
-
-**合并 className**：常用 `clsx` 或 `cn`（shadcn 封装 tailwind-merge + clsx）。
+Vite 编译后类名类似 `_root_x7s9a_1`，**局部作用域**。合并 className 常用 `clsx` 或 shadcn 的 `cn`。
 
 ---
 
-## 五、Tailwind CSS
+## Tailwind CSS
 
 ```tsx
 function Alert({ variant }: { variant: 'info' | 'error' }) {
@@ -126,35 +106,19 @@ function Alert({ variant }: { variant: 'info' | 'error' }) {
 }
 ```
 
-```mermaid
-flowchart LR
-  HTML[JSX className] --> JIT[Tailwind JIT]
-  JIT --> CSS[最终 CSS 文件]
-  CSS --> Browser[浏览器]
-```
-
 | 优点 | 缺点 |
 |------|------|
 | 开发快、设计一致 | 类名长；需团队规范 |
-| tree-shake 未用 class | HTML 可读性争议 |
+| JIT tree-shake 未用 class | HTML 可读性争议 |
 | 与 shadcn 生态好 | 复杂动画仍可能要 CSS |
 
-**配置设计 token**（tailwind.config）：
-
-```javascript
-theme: {
-  extend: {
-    colors: { brand: { DEFAULT: '#1677ff', dark: '#0958d9' } },
-    spacing: { 18: '4.5rem' },
-  },
-},
-```
-
-与 [设计系统](../../../前端工程化体系/10-设计系统与组件工程化.md) 对齐。
+设计 token 在 `tailwind.config` 的 `theme.extend` 里扩展，与团队设计系统对齐。
 
 ---
 
-## 六、CSS-in-JS（styled-components / Emotion）
+## CSS-in-JS 与零运行时方案
+
+**styled-components / Emotion**，样式与 props 强绑定，但有运行时成本：
 
 ```tsx
 import styled from 'styled-components';
@@ -171,19 +135,11 @@ const Button = styled.button<{ $primary?: boolean }>`
 | 主题 Provider 方便 | SSR 要抽 critical CSS |
 | 动态能力强 | **RSC 中不能直接用**（需 Client 边界） |
 
-### 6.1 与 React Server Components
+**RSC 规则**：Server Component 不能用 styled-components 等运行时库；服务端组件用 **CSS Modules / Tailwind**，客户端子树再用 CSS-in-JS（若必须）。
 
-Server Component **不能**使用 styled-components 等依赖运行时的库。样式方案需：
-
-- 服务端组件用 **CSS Modules / Tailwind**
-- 客户端子树再用 CSS-in-JS（若必须）
-
----
-
-## 七、零运行时：Vanilla Extract
+**Vanilla Extract**，构建时生成静态 CSS，无运行时：
 
 ```typescript
-// button.css.ts
 import { style } from '@vanilla-extract/css';
 
 export const button = style({
@@ -197,11 +153,9 @@ import { button } from './button.css.ts';
 <button className={button} />
 ```
 
-构建时生成静态 CSS 文件，**无运行时**，类型安全。
-
 ---
 
-## 八、组件库自带样式
+## 组件库、inline style、暗色模式
 
 | 库 | 样式机制 | 定制 |
 |----|----------|------|
@@ -210,34 +164,20 @@ import { button } from './button.css.ts';
 | **shadcn/ui** | Tailwind + Radix | 改源码 / CSS 变量 |
 
 ```tsx
-// Ant Design 5 token
 <ConfigProvider theme={{ token: { colorPrimary: '#1677ff' } }}>
   <App />
 </ConfigProvider>
 ```
 
----
-
-## 九、inline style
+**inline style** 适合动态坐标、少量一次性样式，不适合整套设计系统：
 
 ```tsx
 <div style={{ display: 'flex', gap: 8, opacity: loading ? 0.6 : 1 }} />
 ```
 
-| 适用 | 动态坐标、Canvas  overlay、少量一次性 |
-| 不适用 | 整套设计系统（难维护、无伪类） |
+类型用 `React.CSSProperties`，属性 camelCase。
 
-类型：`React.CSSProperties`，属性 camelCase。
-
----
-
-## 十、暗色模式常见做法
-
-| 方案 | 实现 |
-|------|------|
-| CSS 变量 | `:root` / `[data-theme=dark]` 切换变量 |
-| Tailwind | `dark:` 前缀 + class on html |
-| MUI/Ant | Provider algorithm |
+**暗色模式**常见做法：
 
 ```css
 :root { --bg: #fff; --text: #111; }
@@ -245,9 +185,11 @@ import { button } from './button.css.ts';
 body { background: var(--bg); color: var(--text); }
 ```
 
+Tailwind 用 `dark:` 前缀 + `class` on `html`；MUI/Ant 用 Provider algorithm。
+
 ---
 
-## 十一、选型决策树
+## 选型决策
 
 ```mermaid
 flowchart TD
@@ -262,28 +204,26 @@ flowchart TD
   Q3 -->|强动态| CIJ[Emotion 等 Client 组件内]
 ```
 
----
-
-## 十二、与编码规范协作
-
 | 实践 | 说明 |
 |------|------|
 | 禁止随意全局类 | 除 reset/token |
-| BEM 或 Modules | 二选一，不混用无规范 |
 | 设计 token 单一来源 | CSS 变量或 Tailwind theme |
 | 样式审查 | 过大 bundle、重复 utility |
 
 ---
 
-## 十三、小结
+## 小结
 
-| 场景 | 建议 |
-|------|------|
-| 默认 SPA | CSS Modules 或 Tailwind |
-| 中后台 | Ant Design / MUI + token |
-| 现代组件库自研 | Tailwind + Radix/shadcn |
-| 强 RSC | 避免运行时 CSS-in-JS 在 Server |
-| props 驱动复杂样式 | CSS 变量 + Modules，或 Client + Emotion |
+**默认 SPA**：**CSS Modules** 或 **Tailwind**；中后台常配 Ant Design / MUI + design token。
 
-**上一篇**：[02-条件渲染与列表渲染](./02-条件渲染与列表渲染.md)  
-**下一篇**：[04-静态资源与SVG-Icon](./04-静态资源与SVG-Icon.md)
+**CSS-in-JS**（Emotion 等）有运行时成本；**RSC** 场景 Server 组件避免运行时 CSS-in-JS，样式放 Client 边界内。
+
+**零运行时**：Vanilla Extract；复杂动态样式也可用 CSS 变量 + Modules。
+
+**inline style**：少量动态值可用；整套 UI 不宜靠 inline。
+
+**暗色模式**：优先 **CSS 变量 + class/data-theme**；全局样式只放 reset/token。
+
+**易混点**：CSS-in-JS ≠ 能在 Server Component 里写；Tailwind 类名长不等于「无 CSS」，仍要约定和审查 bundle。
+
+常见错因：这块是 Server 还是 Client 组件？是否混了多套无规范的全局类？

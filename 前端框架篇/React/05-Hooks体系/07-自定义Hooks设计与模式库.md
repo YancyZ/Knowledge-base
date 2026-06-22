@@ -1,10 +1,10 @@
 # 自定义 Hooks 设计与模式库
 
-> **自定义 Hook** = 以 `use` 开头的函数，内部可调用其他 Hook，用于**复用有状态逻辑**。好的自定义 Hook 像标准库：命名清晰、参数稳定、易测。
+有状态逻辑重复出现时，抽成 **`use` 前缀的自定义 Hook** 比 HOC 更清晰。原则是单一职责、稳定 API、可测试；数据请求优先封装进 Query，而非 `useEffect` + `useState`。
 
 ---
 
-## 一、设计原则
+## 设计原则
 
 ```mermaid
 flowchart TB
@@ -17,14 +17,14 @@ flowchart TB
 | 原则 | 说明 |
 |------|------|
 | **`use` 前缀** | 规则 + 可读性 |
-| **单一职责** | `useUser` vs `useUserAndPostsAndTheme` 拆开 |
-| **返回值稳定** | 考虑 `[value, actions]` 对象 vs 元组 |
+| **单一职责** | `useUser` 与 `useUserPosts` 拆开 |
+| **返回值稳定** | handler 用 useCallback 或 ref 存最新回调 |
 | **错误边界** | 缺 Provider 时 throw 明确错误 |
-| **可测试** | 逻辑可抽离 reducer/纯函数单测 |
+| **可测试** | reducer/纯函数可单测 |
 
 ---
 
-## 二、基础模板
+## 基础模板
 
 ```tsx
 function useToggle(initial = false) {
@@ -34,9 +34,7 @@ function useToggle(initial = false) {
   const setFalse = useCallback(() => setOn(false), []);
   return { on, toggle, setTrue, setFalse };
 }
-```
 
-```tsx
 function useLocalStorage<T>(key: string, initial: T) {
   const [value, setValue] = useState<T>(() => {
     try {
@@ -57,9 +55,58 @@ function useLocalStorage<T>(key: string, initial: T) {
 
 ---
 
-## 三、模式库（常用）
+## 模式库
 
-### 3.1 数据请求（简化版；生产用 Query）
+**useDebounce**：
+
+```tsx
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
+```
+
+**useMediaQuery**（useSyncExternalStore）：
+
+```tsx
+function useMediaQuery(query: string) {
+  return useSyncExternalStore(
+    cb => {
+      const m = window.matchMedia(query);
+      m.addEventListener('change', cb);
+      return () => m.removeEventListener('change', cb);
+    },
+    () => window.matchMedia(query).matches,
+    () => false,
+  );
+}
+```
+
+**useEventListener**，`handlerRef` 避免 handler 变导致重复绑定：
+
+```tsx
+function useEventListener<K extends keyof WindowEventMap>(
+  target: Window | HTMLElement | null,
+  type: K,
+  handler: (e: WindowEventMap[K]) => void,
+) {
+  const handlerRef = useRef(handler);
+  handlerRef.current = handler;
+
+  useEffect(() => {
+    if (!target) return;
+    const listener = (e: Event) => handlerRef.current(e as WindowEventMap[K]);
+    target.addEventListener(type, listener);
+    return () => target.removeEventListener(type, listener);
+  }, [target, type]);
+}
+```
+
+**useFetch 简化版**（生产用 Query）：
 
 ```tsx
 function useFetch<T>(url: string | null) {
@@ -83,100 +130,11 @@ function useFetch<T>(url: string | null) {
 }
 ```
 
-### 3.2 useDebounce / useThrottle
-
-```tsx
-function useDebounce<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const id = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(id);
-  }, [value, delay]);
-  return debounced;
-}
-
-// 搜索：keyword 即时，debouncedKeyword 触发请求
-const debouncedKeyword = useDebounce(keyword, 300);
-```
-
-### 3.3 useMediaQuery
-
-```tsx
-function useMediaQuery(query: string) {
-  return useSyncExternalStore(
-    cb => {
-      const m = window.matchMedia(query);
-      m.addEventListener('change', cb);
-      return () => m.removeEventListener('change', cb);
-    },
-    () => window.matchMedia(query).matches,
-    () => false,
-  );
-}
-```
-
-### 3.4 useEventListener
-
-```tsx
-function useEventListener<K extends keyof WindowEventMap>(
-  target: Window | HTMLElement | null,
-  type: K,
-  handler: (e: WindowEventMap[K]) => void,
-) {
-  const handlerRef = useRef(handler);
-  handlerRef.current = handler;
-
-  useEffect(() => {
-    if (!target) return;
-    const listener = (e: Event) => handlerRef.current(e as WindowEventMap[K]);
-    target.addEventListener(type, listener);
-    return () => target.removeEventListener(type, listener);
-  }, [target, type]);
-}
-```
-
-`handlerRef` 避免 handler 变导致重复绑定。
-
-### 3.5 useIntersectionObserver（懒加载）
-
-```tsx
-function useInView(options?: IntersectionObserverInit) {
-  const ref = useRef<HTMLElement>(null);
-  const [inView, setInView] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([entry]) => {
-      setInView(entry.isIntersecting);
-    }, options);
-    io.observe(el);
-    return () => io.disconnect();
-  }, [options]);
-
-  return { ref, inView };
-}
-```
-
-### 3.6 useClipboard
-
-```tsx
-function useClipboard() {
-  const [copied, setCopied] = useState(false);
-
-  const copy = useCallback(async (text: string) => {
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, []);
-
-  return { copy, copied };
-}
-```
+还有 `useInView`、`useClipboard` 等，按团队在 `src/hooks/` 沉淀。
 
 ---
 
-## 四、组合 Hooks
+## 组合 Hooks
 
 ```tsx
 function useUserProfile(userId: string) {
@@ -201,7 +159,7 @@ function useUserProfile(userId: string) {
 
 ---
 
-## 五、测试自定义 Hook
+## 测试与反模式
 
 ```tsx
 import { renderHook, act } from '@testing-library/react';
@@ -214,44 +172,27 @@ test('useToggle', () => {
 });
 ```
 
-见 [15-测试 · Hooks](../15-测试/04-Hooks与Provider测试.md)。
-
----
-
-## 六、反模式
-
 | 反模式 | 问题 |
 |--------|------|
-| Hook 里直接改 DOM 全局 | 难测、多实例冲突 |
+| Hook 里改 DOM 全局 | 难测、多实例冲突 |
 | 返回每次新建的 `{}` | 消费者 memo 失效 |
-| 一个 Hook 包整个 App | 拆小 |
+| 一个 Hook 包整个 App | 应拆小 |
 | 条件调用其他 Hook | 违反规则 |
 
 ---
 
-## 七、团队「模式库」维护
+## 小结
 
-建议在 `src/hooks/` 目录：
+复用**有状态逻辑**用自定义 Hook（`use` 前缀），优先于 HOC。
 
-| 文件 | 内容 |
-|------|------|
-| `useToggle.ts` | 布尔 |
-| `useDebounce.ts` | 防抖 |
-| `useLocalStorage.ts` | 持久化 |
-| `index.ts` | 统一导出 |
+**API 稳定**：handler 用 useCallback 或 ref；缺 Provider 显式 throw。
 
-文档注释 + 单测 + Storybook 示例（可选）。
+**数据请求**封装进 **Query Hook**，而非 useEffect + useState 重复造轮子。
 
----
+**模式库**：toggle、debounce、localStorage、mediaQuery、eventListener 等在 `src/hooks/` 统一导出+单测。
 
-## 八、小结
+**测试**：**renderHook + act** 测 Hook 逻辑。
 
-| 要点 | 实践 |
-|------|------|
-| 复用逻辑 | 自定义 Hook，非 HOC |
-| 稳定 API | useCallback 内联或 ref 存 handler |
-| 数据 | 优先 TanStack Query 封装 |
-| 测试 | renderHook + act |
+**易混点**：Hook 内条件调用其他 Hook；返回新对象导致 memo 失效。
 
-**上一篇**：[06-useId-useSyncExternalStore等](./06-useId-useSyncExternalStore等.md)  
-**下一模块**：[06-渲染与调和 · 渲染流程总览](../06-渲染与调和/01-渲染流程总览.md)
+常见错因：这段逻辑是否该拆成更小 Hook？是否该用 Query 替代 useFetch？

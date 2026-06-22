@@ -1,10 +1,10 @@
 # useContext 与跨层通信
 
-> **Context** 让子树共享数据，无需逐层 props。**`useContext`** 读取最近的 Provider 值。适合主题、语言、认证等「全局配置」；滥用会导致性能问题。
+Context 把值从 Provider 向下传给任意深度的 consumer，适合主题、语言、auth 壳层等**低频、跨层**配置。高频大数据或 API 缓存别塞 Context，用 Query 或带 selector 的 store。
 
 ---
 
-## 一、创建与使用
+## 创建与使用
 
 ```tsx
 const ThemeContext = createContext<'light' | 'dark'>('light');
@@ -14,9 +14,7 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo(() => ({ theme, setTheme }), [theme]);
 
   return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
   );
 }
 
@@ -33,25 +31,13 @@ function ThemedButton() {
 ```mermaid
 flowchart TB
   P[Provider value]
-  P --> A[子组件 A]
-  P --> B[子组件 B]
-  P --> C[深层 C useContext]
+  P --> C[深层 useContext]
   C -->|读到| P
 ```
 
 ---
 
-## 二、默认值
-
-```tsx
-createContext(defaultValue);
-```
-
-| 无 Provider 时 | 使用 defaultValue |
-|----------------|-------------------|
-| 仅 default | 可能静默错误 |
-
-**推荐**：default 设为 `null` + 自定义 Hook 抛错：
+## 默认值与安全封装
 
 ```tsx
 const AuthContext = createContext<AuthValue | null>(null);
@@ -63,26 +49,24 @@ function useAuth() {
 }
 ```
 
+default 设 `null` + 自定义 Hook 抛错，比静默用错 default 好。
+
 ---
 
-## 三、何时用 Context？
+## 何时用 Context
 
 | ✅ 适合 | ❌ 不适合 |
 |---------|-----------|
-| 主题、locale | 高频变化的大列表数据 |
+| 主题、locale | 高频变化的大列表 |
 | 当前用户（读多写少） | 替代 TanStack Query |
-| 依赖注入（Router、QueryClient） | 所有 props drilling（先试组合） |
-
-见 [08-状态管理 · 放置原则](../08-状态管理/01-状态分类与放置原则.md)。
+| QueryClient、Router 注入 | 所有 drilling（先试组合） |
 
 ---
 
-## 四、性能：拆分 Context
-
-**问题**：value 是 `{ user, theme, cart }` 对象，任一字段变 → **所有** consumer re-render。
+## 性能：拆分 Context
 
 ```tsx
-// ❌ 大对象一个 Context
+// ❌ 任一字段变 → 所有 consumer re-render
 const AppContext = createContext({ user, theme, cart, setCart });
 
 // ✅ 按变更频率拆分
@@ -97,20 +81,14 @@ const AppContext = createContext({ user, theme, cart, setCart });
 |------|------|
 | 拆分 Provider | theme 变不影响只读 user 的组件 |
 | value 稳定 | `useMemo` 包 value 对象 |
-| state + dispatch 分离 | dispatch 引用稳定（useReducer） |
-| 选 Zustand | 细粒度订阅 |
+| state + dispatch 分离 | dispatch 引用稳定 |
+| 选 Zustand | 细粒度 selector |
 
 ---
 
-## 五、Context + useReducer 模板
+## Context + useReducer
 
 ```tsx
-type State = { count: number };
-type Action = { type: 'inc' } | { type: 'dec' };
-
-const StateCtx = createContext<State | null>(null);
-const DispatchCtx = createContext<React.Dispatch<Action> | null>(null);
-
 function CounterProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, { count: 0 });
   return (
@@ -119,52 +97,36 @@ function CounterProvider({ children }: { children: React.ReactNode }) {
     </DispatchCtx.Provider>
   );
 }
-
-function CounterView() {
-  const state = useContext(StateCtx)!;
-  return <span>{state.count}</span>;
-}
-
-function IncButton() {
-  const dispatch = useContext(DispatchCtx)!;
-  return <button onClick={() => dispatch({ type: 'inc' })}>+</button>;
-}
 ```
 
-`IncButton` 只订阅 DispatchContext 时，若 dispatch 引用不变，count 变不导致按钮 re-render（State 与 Dispatch 分离）。
+`IncButton` 只读 DispatchContext 时，count 变不必导致按钮 re-render（若未订阅 StateContext）。
 
 ---
 
-## 六、与 Provider 嵌套
+## Provider 嵌套与 RSC
 
 ```tsx
 <QueryClientProvider client={queryClient}>
   <ThemeProvider>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    <AuthProvider><App /></AuthProvider>
   </ThemeProvider>
 </QueryClientProvider>
 ```
 
-可抽 `AppProviders` 减少视觉噪音。
+Server Component **不能** `useContext` 读 Client Context；Client 子树用 `'use client'` + Provider。
 
 ---
 
-## 七、Context 与 Server Components
+## 小结
 
-Server Component **不能** `useContext` 读 Client Context。Client 子树用 `'use client'` + Provider。见 [14-RSC](../14-服务端与元框架/03-React-Server-Components.md)。
+Context 适合**低频跨层配置**；**API 列表缓存用 Query**。
 
----
+**性能**：拆分 Context、memo value、state/dispatch 分离；高频大对象用 Zustand。
 
-## 八、小结
+**封装 `useXxx()`** 做 null 检查与类型安全。
 
-| 要点 | 实践 |
-|------|------|
-| 跨层静态/低频配置 | Context |
-| 性能 | 拆分、memo value、dispatch 分离 |
-| 类型安全 | 自定义 `useXxx` + null 检查 |
-| 服务端数据 | Query，非 Context 缓存 |
+**勿**用单一巨大 Context 包一切；**勿**用 Context 替代服务端数据层。
 
-**上一篇**：[03-useRef-useImperativeHandle](./03-useRef-useImperativeHandle.md)  
-**下一篇**：[05-useMemo-useCallback](./05-useMemo-useCallback.md)
+**易混点**：value 每次新对象导致全树 render；Consumer 未包 Provider 静默错值。
+
+常见错因：这份数据是否变更太频？能否拆分 Provider？

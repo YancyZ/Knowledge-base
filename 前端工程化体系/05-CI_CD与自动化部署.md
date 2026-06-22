@@ -1,9 +1,6 @@
 # 05 · CI/CD 与自动化部署
 
-> **目标**：实现自动构建、测试、部署，提高交付效率和质量。  
-
-
-## 一、CI/CD 基础概念
+## CI/CD 基础概念
 
 ### 1.1 定义
 
@@ -39,7 +36,7 @@ flowchart LR
 
 ---
 
-## 二、流水线阶段拆解
+## 流水线阶段拆解
 
 | 阶段 | 输入 | 输出 | 失败即阻断 |
 |------|------|------|------------|
@@ -54,7 +51,7 @@ flowchart LR
 
 ---
 
-## 三、GitHub Actions
+## GitHub Actions
 
 ### 3.1 是什么？
 
@@ -188,8 +185,7 @@ jobs:
 
 ---
 
-
-## 四、Jenkins
+## Jenkins
 
 ### 4.1 是什么？
 
@@ -264,7 +260,7 @@ pipeline {
 
 ---
 
-## 五、Docker 容器化
+## Docker 容器化
 
 ### 5.1 为什么容器化前端？
 
@@ -364,7 +360,7 @@ services:
 
 ---
 
-## 六、部署平台
+## 部署平台
 
 ### 6.1 自建 Nginx / 云服务器
 
@@ -451,7 +447,7 @@ vercel
 
 ---
 
-## 七、完整交付流程示例
+## 完整交付流程示例
 
 ```mermaid
 sequenceDiagram
@@ -495,7 +491,7 @@ sequenceDiagram
 
 ---
 
-## 八、部署最佳实践
+## 部署最佳实践
 
 ### 8.1 缓存策略
 
@@ -534,7 +530,7 @@ location /health {
 
 ---
 
-## 九、常见问题 FAQ
+## 常见问题 FAQ
 
 ### Q1：构建成功但页面空白？
 
@@ -568,8 +564,7 @@ dist
 
 ---
 
-
-## 十、发布策略与生产治理
+## 发布策略与生产治理
 
 ### 10.1 部署模式对比
 
@@ -769,25 +764,12 @@ add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
 
 ---
 
-## 十一、最佳实践清单
+## 小结
 
-- [ ] PR 必须通过 CI（lint + test + build）
-- [ ] main 分支保护，禁止直接 push
-- [ ] Secrets 不入库，用平台 Secret 管理
-- [ ] 静态资源 hash + CDN 长缓存
-- [ ] SPA 配置 history 模式回退
-- [ ] Docker 多阶段构建减小镜像
-- [ ] 生产接入错误监控
-- [ ] 文档化部署与回滚步骤
-- [ ] 构建一次、晋升产物（同 artifact / 同 image tag）
-- [ ] index.html no-cache、hash 资源 immutable
-- [ ] CSP Report-Only → enforce 渐进
-- [ ] 生产 Source Map 仅上传监控平台
-- [ ] 关键路径 Playwright E2E 进 CI
+CI/CD 把**合并到主干**变成可重复的流水线：安装 → 静态检查 → 构建 → 测试 → 部署，任一步失败即阻断。
 
----
+PR 触发 lint/typecheck/test/build；main 分支 deploy；缓存 pnpm store；Docker 多阶段构建静态资源；蓝绿/金丝雀降低发布风险。
 
-## 十二、小结
+**易混点**：CI 不 frozen lockfile；构建产物未 artifact 化；把 deploy token 写进仓库；E2E 不稳定却 gating 全流水线。
 
-CI/CD 将构建、测试、部署流水线化，Docker 与 Nginx 是静态前端最常见的交付形态。多环境晋升、蓝绿与金丝雀发布、CDN 缓存分层和安全响应头，共同构成生产级上线能力。
-
+核对：流水线是否与 README 命令一致？回滚流程是否演练过？

@@ -1,10 +1,10 @@
 # URL 状态与路由参数
 
-> **URL 即 state**：可分享、可收藏、可后退。筛选、分页、Tab 等适合放 **searchParams**，而非仅存在内存 store 里。
+分页、筛选、Tab 等**可分享、可后退**的状态，应同步到 URL 的 searchParams，而非仅存在内存 store； `useParams` / `useSearchParams` 用法、与 TanStack Query 的 queryKey 联动，以及 nuqs 的类型安全封装。
 
 ---
 
-## 一、URL 存什么？
+## URL 存什么？
 
 | 适合 URL | 不适合 URL |
 |----------|------------|
@@ -24,9 +24,9 @@ flowchart LR
 
 ---
 
-## 二、React Router v6
+## React Router v6
 
-### 2.1 路径参数
+### 路径参数
 
 ```tsx
 // 路由 /users/:userId
@@ -36,7 +36,7 @@ function UserPage() {
 }
 ```
 
-### 2.2 查询参数
+### 查询参数
 
 ```tsx
 import { useSearchParams } from 'react-router-dom';
@@ -68,7 +68,7 @@ function ProductList() {
 
 ---
 
-## 三、与 TanStack Query 联动
+## 与 TanStack Query 联动
 
 **URL 是 source of truth**，Query `queryKey` 包含 URL 参数：
 
@@ -89,7 +89,7 @@ useQuery({
 
 ---
 
-## 四、nuqs（类型安全 URL state）
+## nuqs（类型安全 URL state）
 
 ```bash
 pnpm add nuqs
@@ -114,7 +114,7 @@ function List() {
 
 ---
 
-## 五、同步 Tab 到 URL
+## 同步 Tab 到 URL
 
 ```tsx
 const [tab, setTab] = useQueryState('tab', { defaultValue: 'overview' });
@@ -128,7 +128,7 @@ const [tab, setTab] = useQueryState('tab', { defaultValue: 'overview' });
 
 ---
 
-## 六、注意点
+## 注意点
 
 | 问题 | 处理 |
 |------|------|
@@ -138,13 +138,10 @@ const [tab, setTab] = useQueryState('tab', { defaultValue: 'overview' });
 
 ---
 
-## 七、小结
+## 小结
 
-| 场景 | 方案 |
-|------|------|
-| 分页筛选 | searchParams + Query |
-| 动态路由 id | useParams |
-| DX | nuqs |
+**URL 状态**：分页、筛选、Tab 等可分享场景用 **searchParams**，而非仅内存 store。**useParams** 读路径 id；**useSearchParams** 读写查询串。
 
-**上一篇**：[05-Jotai-Recoil等原子化状态](./05-Jotai-Recoil等原子化状态.md)  
-**下一模块**：[09-数据获取与缓存](../09-数据获取与缓存/01-服务端状态本质.md)
+**queryKey 含 searchParams**，URL 变则 Query 自动 refetch。**nuqs** 提供类型安全 URL state；注意默认值与序列化。
+
+常见错因：筛选条件是否应进 URL 以便分享？queryKey 是否包含全部 URL 参数？

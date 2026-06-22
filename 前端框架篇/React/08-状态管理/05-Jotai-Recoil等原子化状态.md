@@ -1,10 +1,10 @@
 # Jotai、Recoil 等原子化状态
 
-> **原子（atom）** 把状态拆成最小单元，组件只订阅用到的 atom，避免大 store 对象变更牵连全树。
+**原子化**把状态拆成最小 **atom**，组件只订阅用到的单元，避免大对象 Context/store 牵连全树 re-render。Jotai 是现代首选之一；Recoil 多见于历史项目。服务端数据仍用 TanStack Query，不与 atom 重复缓存。
 
 ---
 
-## 一、原子化思路
+## 原子化思路
 
 ```mermaid
 flowchart LR
@@ -26,7 +26,7 @@ flowchart LR
 
 ---
 
-## 二、Jotai 示例
+## Jotai 示例
 
 ```bash
 pnpm add jotai
@@ -58,7 +58,7 @@ function DoubleDisplay() {
 
 ---
 
-## 三、派生 atom
+## 派生 atom
 
 ```tsx
 const userIdAtom = atom<string | null>(null);
@@ -73,7 +73,7 @@ const userAtom = atom(async get => {
 
 ---
 
-## 四、Recoil（Meta 维护模式变化）
+## Recoil（Meta 维护模式变化）
 
 ```tsx
 const countState = atom({ key: 'count', default: 0 });
@@ -88,7 +88,7 @@ function Counter() {
 
 ---
 
-## 五、与 Zustand 对比
+## 与 Zustand 对比
 
 | | Jotai | Zustand |
 |---|-------|---------|
@@ -103,7 +103,7 @@ function Counter() {
 
 ---
 
-## 六、atomFamily
+## atomFamily
 
 ```tsx
 const todoAtomFamily = atomFamily((id: string) =>
@@ -115,13 +115,10 @@ const todoAtomFamily = atomFamily((id: string) =>
 
 ---
 
-## 七、小结
+## 小结
 
-| 要点 | 说明 |
-|------|------|
-| 原子化 | 细订阅 |
-| Jotai | 现代首选之一 |
-| 服务端数据 | 仍用 Query |
+**原子化**：状态拆成最小 **atom**，组件只订阅用到的单元。**Jotai** 是现代首选之一；**Recoil** 维护模式变化，新项目慎选。
 
-**上一篇**：[04-Redux-Toolkit与RTK-Query](./04-Redux-Toolkit与RTK-Query.md)  
-**下一篇**：[06-URL状态与路由参数](./06-URL状态与路由参数.md)
+**派生 atom** 表达 computed；**atomFamily** 参数化列表项 state。服务端数据仍用 **TanStack Query**，不与 atom 重复缓存。
+
+常见错因：是否用 atom 缓存了 API 列表？列表项 state 是否应用 atomFamily 隔离？

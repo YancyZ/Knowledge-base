@@ -1,13 +1,21 @@
 # Zustand 与轻量全局状态
 
-> **Zustand** 是小 API、无 Provider 包裹的 global store，支持**细粒度订阅**，适合主题、认证、UI 壳层等客户端全局 state。
+侧边栏开关、主题、auth token 等**客户端全局 state**，Zustand 用 selector 细订阅、无 Provider 嵌套，比 Context 更适合高频变更场景。API 列表/详情仍应交给 TanStack Query，勿 duplicate cache 进 store。
 
 ---
 
-## 一、最小示例
+## 最小示例
 
 ```bash
 pnpm add zustand
+```
+
+```mermaid
+flowchart LR
+  C[组件 A] -->|selector 订阅 slice| S[Zustand store]
+  C2[组件 B] -->|只订阅 theme| S
+  S -->|不触发| C2
+  Q[TanStack Query] -->|API 列表| C
 ```
 
 ```tsx
@@ -42,7 +50,7 @@ function Toggle() {
 
 ---
 
-## 二、与 useState 对比
+## 与 useState 对比
 
 | | useState | Zustand |
 |---|----------|---------|
@@ -52,7 +60,7 @@ function Toggle() {
 
 ---
 
-## 三、immer 中间件
+## immer 中间件
 
 ```tsx
 import { create } from 'zustand';
@@ -76,7 +84,7 @@ const useCartStore = create(
 
 ---
 
-## 四、persist 持久化
+## persist 持久化
 
 ```tsx
 import { persist } from 'zustand/middleware';
@@ -97,7 +105,7 @@ const useSettingsStore = create(
 
 ---
 
-## 五、分 store 还是单 store
+## 分 store 还是单 store
 
 | 多 store | 单 store slice |
 |----------|----------------|
@@ -108,7 +116,7 @@ const useSettingsStore = create(
 
 ---
 
-## 六、与 TanStack Query 分工
+## 与 TanStack Query 分工
 
 ```tsx
 // 用户资料：服务端
@@ -122,7 +130,7 @@ const theme = useSettingsStore(s => s.theme);
 
 ---
 
-## 七、测试
+## 测试
 
 ```tsx
 const state = useCartStore.getState();
@@ -133,13 +141,10 @@ useCartStore.setState({ items: [] });
 
 ---
 
-## 八、小结
+## 小结
 
-| 场景 | Zustand |
-|------|---------|
-| 侧边栏、主题 | ✅ |
-| 登录用户 token（配合 Query 拉 profile） | ✅ |
-| 服务端列表 | ❌ 用 Query |
+**Zustand**：无 Provider、**selector 细订阅**，适合侧边栏、主题、auth token 等客户端全局 state。**immer / persist** 中间件简化更新与持久化。
 
-**上一篇**：[02-Context进阶与性能](./02-Context进阶与性能.md)  
-**下一篇**：[04-Redux-Toolkit与RTK-Query](./04-Redux-Toolkit与RTK-Query.md)
+**API 列表/详情**仍用 TanStack Query，勿 duplicate cache 进 Zustand。大项目可按 domain **拆多个 store**；store 逻辑可单测。
+
+常见错因：是否把服务端数据误放进 Zustand？selector 是否订阅了过多字段导致多余 render？

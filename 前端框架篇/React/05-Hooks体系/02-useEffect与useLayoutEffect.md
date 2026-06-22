@@ -1,39 +1,34 @@
 # useEffect 与 useLayoutEffect
 
-> **`useEffect`** 在浏览器**绘制之后**运行副作用，并支持**清理函数**。**`useLayoutEffect`** 在 DOM 更新后、**用户看到画面之前**同步运行。选对 Hook，才能避免闪烁、竞态和泄漏。
+副作用是影响 React 外部世界或依赖外部的操作，fetch、订阅、改 `document.title` 等。`useEffect` 在浏览器 **paint 之后**异步跑；`useLayoutEffect` 在 paint **之前**同步跑，仅在有可见闪烁时用。
 
 ---
 
-## 一、副作用是什么？
-
-**副作用**：影响 React 外部世界，或依赖外部变化的操作。
+## 副作用边界
 
 | 是副作用 | 不是副作用（应在 render） |
 |----------|---------------------------|
 | fetch 数据 | 由 props 计算 className |
-| 订阅 WebSocket | 过滤列表 `items.filter` |
+| 订阅 WebSocket | `items.filter` |
 | `document.title = ...` | 格式化日期显示 |
-| 操作非 React 管理的 DOM | 纯 JSX 返回 |
-| 定时器 | |
+| 定时器 | 纯 JSX 返回 |
 
 ```tsx
 useEffect(() => {
-  // 副作用逻辑
-  return () => {
-    // 清理（可选）
-  };
+  // 副作用
+  return () => { /* 清理 */ };
 }, [deps]);
 ```
 
 ---
 
-## 二、useEffect 执行时机
+## useEffect 执行时机
 
 ```mermaid
 sequenceDiagram
-  participant R as Render 阶段
+  participant R as Render
   participant C as Commit DOM
-  participant P as 浏览器绘制
+  participant P as Paint
   participant E as useEffect
 
   R->>C: 更新 DOM
@@ -41,44 +36,11 @@ sequenceDiagram
   P->>E: 异步调度 effect
 ```
 
-| 阶段 | 做什么 |
-|------|--------|
-| Render | 调用组件，算 JSX（纯） |
-| Commit | 改 DOM |
-| Paint | 用户可见 |
-| **useEffect** | 跑订阅、请求等 |
-
-因此 effect **不能**在首次 paint 前测量布局（会闪）→ 用 `useLayoutEffect`。
-
----
-
-## 三、依赖数组 `[deps]`
-
-```tsx
-useEffect(() => {
-  console.log('每次 render 后都跑');
-});
-
-useEffect(() => {
-  console.log('仅 mount 一次');
-}, []);
-
-useEffect(() => {
-  console.log('count 变时跑');
-}, [count]);
-
-useEffect(() => {
-  console.log('count 或 id 变时跑');
-}, [count, id]);
-```
-
 | deps | 行为 |
 |------|------|
 | 省略 | **每次** commit 后都执行 |
-| `[]` | 仅 mount 后一次（+ StrictMode 开发双调） |
+| `[]` | mount 后一次（开发 StrictMode 双调） |
 | `[a, b]` | a 或 b 变则执行；先 cleanup 再 effect |
-
-### 3.1 清理函数
 
 ```tsx
 useEffect(() => {
@@ -87,40 +49,25 @@ useEffect(() => {
 }, []);
 ```
 
-**时机**：组件卸载前，或**下一次 effect 执行前**（deps 变了）。
-
-```mermaid
-flowchart LR
-  Mount --> Effect1[effect 运行]
-  DepChange --> Cleanup[cleanup]
-  Cleanup --> Effect2[新 effect]
-  Unmount --> Cleanup2[cleanup]
-```
+清理时机：卸载前，或**下一次 effect 执行前**。
 
 ---
 
-## 四、典型场景
-
-### 4.1 数据获取
+## 典型场景：请求与订阅
 
 ```tsx
 useEffect(() => {
   let cancelled = false;
-
   async function load() {
     const data = await fetchUser(userId);
     if (!cancelled) setUser(data);
   }
   load();
-
   return () => { cancelled = true; };
 }, [userId]);
 ```
 
-| 要点 | 说明 |
-|------|------|
-| **竞态** | 快速切换 id 时，旧请求后返回会覆盖新数据 → cancelled / AbortController |
-| 服务端数据 | 更推荐 **TanStack Query**，见 [09-数据获取](../09-数据获取与缓存/) |
+更推荐 **TanStack Query** 管服务端数据；手写 fetch 须防**竞态**（cancelled 或 AbortController）。
 
 ```tsx
 useEffect(() => {
@@ -133,8 +80,6 @@ useEffect(() => {
 }, [userId]);
 ```
 
-### 4.2 订阅
-
 ```tsx
 useEffect(() => {
   function onResize() { setW(window.innerWidth); }
@@ -143,17 +88,9 @@ useEffect(() => {
 }, []);
 ```
 
-### 4.3 同步 document
-
-```tsx
-useEffect(() => {
-  document.title = `${count} 条未读`;
-}, [count]);
-```
-
 ---
 
-## 五、useLayoutEffect
+## useLayoutEffect
 
 ```tsx
 useLayoutEffect(() => {
@@ -162,98 +99,52 @@ useLayoutEffect(() => {
 }, [visible]);
 ```
 
-```mermaid
-sequenceDiagram
-  participant C as Commit DOM
-  participant L as useLayoutEffect
-  participant P as Paint
-
-  C->>L: 同步执行
-  L->>P: 再绘制
-```
-
 | | useEffect | useLayoutEffect |
 |---|-----------|-----------------|
 | 时机 | paint **之后** | paint **之前** |
-| 阻塞绘制 | 否 | **是**，慎用 |
-| 适用 | 大多数副作用 | 测量 DOM、同步改 DOM 防闪 |
+| 阻塞绘制 | 否 | **是** |
+| 适用 | 大多数副作用 | 测量 DOM、防闪 |
 
-**默认用 useEffect**；只有用户可见**闪烁**时才改 layoutEffect。
+**默认 useEffect**；只有用户可见**闪烁**才改 layoutEffect。SSR 无 DOM，`useLayoutEffect` 会 warning。
 
-### 5.1 SSR 注意
-
-服务端无 DOM，`useLayoutEffect` 会 warning。SSR 组件可：
-
-- 仅在 client 用 dynamic import，或
-- 用 `useEffect` 替代，接受首帧可能闪一下
+`useInsertionEffect` 供 CSS-in-JS 库注入，业务代码几乎不用。
 
 ---
 
-## 六、useInsertionEffect（了解）
-
-CSS-in-JS 库在 DOM 变更前注入 style，**应用代码几乎不用**。优先级：`useInsertionEffect` → `useLayoutEffect` → `useEffect`。
-
----
-
-## 七、不要误用 useEffect 的场景
+## 误用 effect 的场景
 
 | 误用 | 应用 |
 |------|------|
 | props → state 同步 | 渲染时算或 `key` remount |
-| 用户点击触发的请求 | 事件 handler 里 fetch |
+| 用户点击触发的请求 | 事件 handler |
 | 纯派生数据 | render 或 useMemo |
-| 每次 render 无 deps 的 setState | 死循环 |
+| 无 deps 里 setState | 死循环 |
 
 ```tsx
 // ❌ 无限循环
-useEffect(() => {
-  setCount(c => c + 1);
-});
-
-// ❌ 应用事件处理
-useEffect(() => {
-  submitForm();
-}, [form]);
+useEffect(() => { setCount(c => c + 1); });
 ```
 
 ---
 
-## 八、exhaustive-deps 与稳定依赖
+## exhaustive-deps 与 StrictMode
 
-```tsx
-useEffect(() => {
-  log(userId);
-}, [userId]); // ✅
+对象/函数 deps 每次是新引用 → effect 频繁触发；拆原始依赖、父级 useCallback，或 eslint-disable 并注释。
 
-// 对象/函数每次 render 是新引用
-useEffect(() => {
-  opts.onDone();
-}, [opts]); // ⚠️ 可能每次触发
-
-// 解：拆原始依赖，或 useCallback 父级，或 eslint-disable 并注释
-```
+开发 StrictMode：**mount → cleanup → mount → effect**，暴露未清理订阅；生产 `[]` 只跑一次。
 
 ---
 
-## 九、Effect 与 StrictMode（开发）
+## 小结
 
-开发环境 StrictMode **mount → cleanup → mount → effect**，模拟「卸载再挂载」，暴露未清理的订阅。
+**副作用进 effect**，render 保持纯；配 **cleanup** 防泄漏与竞态。
 
-生产环境**只执行一次**（deps `[]` 时）。
+**deps** 决定频率；省略 = 每次 render 后都跑。
 
-见 [06-StrictMode](../06-渲染与调和/06-StrictMode与开发态行为.md)。
+**DOM 测量防闪**用 useLayoutEffect；数据请求优先 **Query** 或 abort 竞态。
 
----
+**勿用 effect** 同步 props 到 state、代替事件处理、无 deps 循环 setState。
 
-## 十、小结
+**易混点**：useEffect ≠ componentDidMount 语义；StrictMode 双跑不是 bug。
 
-| 要点 | 记忆 |
-|------|------|
-| 副作用进 effect | render 保持纯 |
-| deps 控制频率 | 省略 = 每次 |
-| cleanup | 防泄漏、防竞态 |
-| 测量 DOM | useLayoutEffect |
-| 数据请求 | 竞态处理或 TanStack Query |
-
-**上一篇**：[01-useState与useReducer](./01-useState与useReducer.md)  
-**下一篇**：[03-useRef-useImperativeHandle](./03-useRef-useImperativeHandle.md)
+常见错因：这段逻辑依赖谁？cleanup 写了吗？是否该放事件里而非 effect？

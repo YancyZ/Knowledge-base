@@ -1,10 +1,10 @@
 # Data Router 与 Loader / Action
 
-> **Data Router**（`createBrowserRouter`）在**进页面前**就能跑 `loader` 拉数据、用 `action` 处理表单提交，并内置 pending / error 状态——与 TanStack Query 可互补或替代部分场景。
+Data Router 在**进路由前**跑 loader 取数、用 action 处理 Form 提交，比 mount 后 `useEffect` fetch 更早拿到数据，且自带 `useNavigation` pending 状态。客户端 cache 仍常用 TanStack Query；loader 适合首屏或与 Router 深度集成。
 
 ---
 
-## 一、数据流对比
+## 数据流对比
 
 ```mermaid
 sequenceDiagram
@@ -27,7 +27,7 @@ sequenceDiagram
 
 ---
 
-## 二、loader 基础
+## loader 基础
 
 ```tsx
 async function userLoader({ params }: LoaderFunctionArgs) {
@@ -59,7 +59,7 @@ function UserDetail() {
 
 ---
 
-## 三、action 与 Form
+## action 与 Form
 
 ```tsx
 async function updateUserAction({ request, params }: ActionFunctionArgs) {
@@ -100,7 +100,7 @@ flowchart LR
 
 ---
 
-## 四、useNavigation 状态
+## useNavigation 状态
 
 | state | 含义 |
 |-------|------|
@@ -115,7 +115,7 @@ if (navigation.state === 'loading') return <PageSkeleton />;
 
 ---
 
-## 五、与 TanStack Query 如何选
+## 与 TanStack Query 如何选
 
 | 场景 | 建议 |
 |------|------|
@@ -134,7 +134,7 @@ export async function userLoader({ params }: LoaderFunctionArgs) {
 
 ---
 
-## 六、defer 流式（概览）
+## defer 流式（概览）
 
 ```tsx
 async function slowLoader() {
@@ -156,11 +156,11 @@ function Page() {
 }
 ```
 
-与 [12-并发与Suspense](../12-并发与Suspense/03-Suspense与数据加载.md) 衔接。
+慢数据可 defer，快数据先渲染，配合 Suspense 流式展示。
 
 ---
 
-## 七、shouldRevalidate
+## shouldRevalidate
 
 控制 loader 何时重跑：
 
@@ -175,14 +175,10 @@ function Page() {
 
 ---
 
-## 八、小结
+## 小结
 
-| 概念 | 用途 |
-|------|------|
-| loader | 读数据 |
-| action | 写数据 / 表单 |
-| Form | 声明式提交 |
-| errorElement | 路由级错误 UI |
+**loader**：进路由前读数据；**action**：处理 Form 提交写数据。**`<Form>`** 声明式提交；**useNavigation** 拿 pending 状态；**errorElement** 路由级错误 UI。
 
-**上一篇**：[02-嵌套路由与Layout](./02-嵌套路由与Layout.md)  
-**下一篇**：[04-路由鉴权与导航守卫](./04-路由鉴权与导航守卫.md)
+客户端 cache 仍常用 **TanStack Query**；loader 适合首屏/SSR 或与 RR 深度集成。**shouldRevalidate** 控制 loader 何时重跑。
+
+常见错因：列表 refetch 是否该用 Query 而非 loader？loader throw 是否配置了 errorElement？

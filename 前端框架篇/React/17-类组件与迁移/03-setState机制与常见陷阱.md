@@ -1,10 +1,10 @@
 # setState 机制与常见陷阱
 
-> 类组件的 **`this.setState`** 是**异步批量合并**的；函数组件的 **`useState`** 更新方式不同。读懂这些，才能解释「为什么连点两次只加 1」以及迁移时的行为差异。
+类组件的 **`this.setState`** 是**异步批量合并**的；函数组件的 **`useState`** 更新方式不同。读懂这些，才能解释「为什么连点两次只加 1」以及迁移时的行为差异。
 
 ---
 
-## 一、setState 是合并，不是替换
+## setState 是合并，不是替换
 
 ```tsx
 this.state = { a: 1, b: 2 };
@@ -18,7 +18,7 @@ this.setState({ a: 10 });
 
 ---
 
-## 二、异步与批处理
+## 异步与批处理
 
 ```tsx
 handleClick = () => {
@@ -53,11 +53,11 @@ setCount(c => c + 1);
 setCount(c => c + 1);
 ```
 
-见 [05-批处理](../06-渲染与调和/05-批处理与自动批处理.md)。
+React 18 自动批处理，连续 setState 合并一次 render，基于旧 state 的连续更新会丢失。
 
 ---
 
-## 三、setState 回调（类专属）
+## setState 回调（类专属）
 
 ```tsx
 this.setState({ count: 1 }, () => {
@@ -65,13 +65,13 @@ this.setState({ count: 1 }, () => {
 });
 ```
 
-Hooks **无** 直接等价——用 `useEffect` 监听 state 或 `flushSync` 极少数场景。
+Hooks **无** 直接等价，用 `useEffect` 监听 state 或 `flushSync` 极少数场景。
 
 ---
 
-## 四、常见陷阱
+## 常见陷阱
 
-### 4.1 依赖旧 state 连调
+### 依赖旧 state 连调
 
 ```tsx
 // ❌
@@ -83,14 +83,14 @@ this.setState(s => ({ value: s.value + 1 }));
 this.setState(s => ({ value: s.value + 1 }));
 ```
 
-### 4.2 在 setState 后立即读
+### 在 setState 后立即读
 
 ```tsx
 this.setState({ open: true });
 console.log(this.state.open); // 可能仍是 false
 ```
 
-### 4.3 props + state 双源
+### props + state 双源
 
 ```tsx
 // ❌ props 变又 setState 镜像
@@ -101,7 +101,7 @@ componentDidUpdate(prev) {
 }
 ```
 
-### 4.4 可变 state 直接改
+### 可变 state 直接改
 
 ```tsx
 // ❌
@@ -114,7 +114,7 @@ this.setState(s => ({ list: [...s.list, item] }));
 
 ---
 
-## 五、与 useState 对比
+## 与 useState 对比
 
 | | class setState | useState |
 |---|----------------|----------|
@@ -133,17 +133,17 @@ const [b, setB] = useState(2);
 
 ---
 
-## 六、forceUpdate
+## forceUpdate
 
 ```tsx
 this.forceUpdate(); // 跳过 shouldComponentUpdate
 ```
 
-**避免使用**——找 root cause。Hooks 无等价物。
+**避免使用**，找 root cause。Hooks 无等价物。
 
 ---
 
-## 七、迁移提示
+## 迁移提示
 
 | 类模式 | Hook 模式 |
 |--------|-----------|
@@ -153,13 +153,8 @@ this.forceUpdate(); // 跳过 shouldComponentUpdate
 
 ---
 
-## 八、小结
+## 小结
 
-| 口诀 | |
-|------|--|
-| 合并非替换 | |
-| 连改用函数式 | |
-| 异步勿立刻读 | |
+setState 浅合并、异步批处理；连续更新用函数式 setState，勿在 setState 后立即读 state。
 
-**上一篇**：[02-生命周期与Hooks对照表](./02-生命周期与Hooks对照表.md)  
-**下一篇**：[04-类组件迁移策略与步骤](./04-类组件迁移策略与步骤.md)
+setState 浅合并 partial state，不替换整个 state。异步批处理导致连续基于旧 state 的更新只生效一次，用函数式 setState(prev => ...) 解决。setState 回调是类专属，Hooks 用 useEffect 监听。陷阱：连调基于旧 state、setState 后立即读、props+state 双源、可变 state 直接 push。useState 每个 hook 独立槽，不自动合并多字段；复杂对象用 useReducer。forceUpdate 应避免。迁移：多字段→useReducer，callback→useEffect，连续更新→函数式 setState。

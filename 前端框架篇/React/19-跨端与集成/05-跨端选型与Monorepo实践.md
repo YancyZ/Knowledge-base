@@ -1,10 +1,10 @@
 # 跨端选型与 Monorepo 实践
 
-> **Web + 移动 + 桌面** 是否共用代码，取决于产品形态。本篇对比 **Tauri / Electron / RN / Capacitor**，并给出 **pnpm workspace** 目录建议。
+**Web + 移动 + 桌面** 是否共用代码，取决于产品形态。本篇对比 **Tauri / Electron / RN / Capacitor**，并给出 **pnpm workspace** 目录建议。
 
 ---
 
-## 一、跨端方案对比
+## 跨端方案对比
 
 | 方案 | 技术 | 适用 |
 |------|------|------|
@@ -25,7 +25,7 @@ flowchart TB
 
 ---
 
-## 二、何时 WebView（Capacitor）？
+## 何时 WebView（Capacitor）
 
 | ✅ | ❌ |
 |----|-----|
@@ -37,7 +37,7 @@ RN 适合**要原生列表/手势**的 App。
 
 ---
 
-## 三、Monorepo 结构
+## Monorepo 结构
 
 ```
 apps/
@@ -67,7 +67,7 @@ packages:
 
 ---
 
-## 四、共享 TanStack Query
+## 共享 TanStack Query
 
 ```tsx
 // packages/api-client/users.ts
@@ -80,7 +80,7 @@ Web 与 RN 各包一层 `QueryClientProvider`，**共享 hook 定义**。
 
 ---
 
-## 五、样式策略
+## 样式策略
 
 | 层 | Web | RN |
 |----|-----|-----|
@@ -91,7 +91,7 @@ Web 与 RN 各包一层 `QueryClientProvider`，**共享 hook 定义**。
 
 ---
 
-## 六、构建与 CI
+## 构建与 CI
 
 ```mermaid
 flowchart LR
@@ -106,7 +106,7 @@ Turborepo / Nx 可缓存 task（可选）。
 
 ---
 
-## 七、选型决策
+## 选型决策
 
 | 问题 | 倾向 |
 |------|------|
@@ -116,13 +116,8 @@ Turborepo / Nx 可缓存 task（可选）。
 
 ---
 
-## 八、小结
+## 小结
 
-| 要点 | |
-|------|--|
-| 逻辑共享 > UI 强行共享 | |
-| pnpm workspace | |
-| RN vs WebView 按体验选 | |
+逻辑共享优于 UI 强行共享；pnpm workspace + shared 包，RN vs WebView 按体验选型。
 
-**上一篇**：[04-动画与手势](./04-动画与手势.md)  
-**下一模块**：[20-排障与生产实践](../20-排障与生产实践/01-常见运行时错误与修复.md)
+跨端方案：Web SPA、RN/Expo（原生 App）、Capacitor（WebView 轻 App）、Electron/Tauri（桌面）。Capacitor 适合已有 H5 快速上架；RN 适合要原生体验。Monorepo：apps/（web/mobile/admin）+ packages/（api-client/types/utils/ui-web），pnpm workspace。共享 TanStack Query hook 定义，各端包 QueryClientProvider。样式：设计 token 跨端共享，组件通常分叉；完全共享 JSX 需 react-native-web/Tamagui。CI：lint/test/build 全仓。选型：仅浏览器→单体 Vite；Web+App→monorepo+shared；桌面→Tauri/Capacitor。

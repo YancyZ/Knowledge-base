@@ -1,10 +1,10 @@
 # Strict Mode 与开发态行为
 
-> **`<StrictMode>`** 仅在**开发环境**启用额外检查，帮助发现不安全副作用与过时 API。**不会**在生产环境渲染两次或双调 effect。
+`StrictMode` 是开发态辅助工具：故意**双调 render 和 effect**，暴露 render 中的副作用、缺失的 cleanup 等问题。**生产环境不会双 render / 双调 effect**，行为与无 StrictMode 一致。
 
 ---
 
-## 一、如何启用
+## 如何启用
 
 ```tsx
 import { StrictMode } from 'react';
@@ -21,7 +21,7 @@ createRoot(document.getElementById('root')!).render(
 
 ---
 
-## 二、开发环境会做什么？
+## 开发环境会做什么？
 
 ```mermaid
 flowchart TB
@@ -41,7 +41,7 @@ flowchart TB
 
 ---
 
-## 三、effect 双调用示例
+## effect 双调用示例
 
 ```tsx
 useEffect(() => {
@@ -57,8 +57,8 @@ useEffect(() => {
 // 生产：仅 effect run 一次
 ```
 
-| 要求 | 你的 effect 必须 |
-|------|------------------|
+| 要求 | effect 必须 |
+|------|-------------|
 | cleanup 对称 | 取消订阅、abort、clearTimeout |
 | 幂等 | 重复 mount 不出错 |
 
@@ -72,7 +72,7 @@ useEffect(() => {
 
 ---
 
-## 四、render 双调用
+## render 双调用
 
 ```tsx
 function Counter() {
@@ -92,7 +92,7 @@ function Counter() {
 
 ---
 
-## 五、useState 惰性初始化双调用
+## useState 惰性初始化双调用
 
 ```tsx
 useState(() => {
@@ -106,7 +106,7 @@ useState(() => {
 
 ---
 
-## 六、常见困惑 FAQ
+## 常见困惑
 
 | 问题 | 答案 |
 |------|------|
@@ -117,13 +117,13 @@ useState(() => {
 
 ---
 
-## 七、与 Concurrent 的关系
+## 与 Concurrent 的关系
 
 StrictMode 还帮助准备 **Concurrent** 可中断/重试 语义：组件应能安全「丢弃一次 render 再重来」。
 
 ---
 
-## 八、何时可暂时移除 StrictMode
+## 何时可暂时移除 StrictMode
 
 | 场景 | 说明 |
 |------|------|
@@ -134,20 +134,10 @@ StrictMode 还帮助准备 **Concurrent** 可中断/重试 语义：组件应能
 
 ---
 
-## 九、小结
+## 小结
 
-| 要点 | 记忆 |
-|------|------|
-| 仅开发 | 生产无影响 |
-| effect 双调 | 写 cleanup |
-| render 纯 | 无副作用 |
-| 不是 bug | 是故意的检测 |
+**StrictMode 仅开发环境**生效；生产不会双 render / 双调 effect。它故意**双调 effect** 以检测缺失 **cleanup**（订阅泄漏、未 abort 的请求等）。
 
-**上一篇**：[05-批处理与自动批处理](./05-批处理与自动批处理.md)  
-**下一批（P1）**：[07-组件模式与架构](../07-组件模式与架构/01-复合组件与状态共享.md)
+**render 须纯**：无副作用；`useState` 惰性 init 也会被双测，init 函数应可重复执行。双调用不是 bug，是帮助发现不安全模式的工具，应修 cleanup 而非关掉 StrictMode。
 
----
-
-## P0 阶段完成
-
-至此 **入门与核心（P0）** 模块已全部覆盖：认知 → JSX → 组件 → 事件表单 → Hooks → 渲染调和。建议结合 [React 编码规范](../React编码规范.md) 做小项目练手，再进入 **P1（状态 / 路由 / 性能 / TS）**。
+常见错因：effect 有没有对称 cleanup？开发态请求双发是否因 effect 双调？计数器异常是否另有重复事件绑定？

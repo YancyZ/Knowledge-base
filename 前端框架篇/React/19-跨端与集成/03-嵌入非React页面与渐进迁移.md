@@ -1,10 +1,10 @@
 # 嵌入非 React 页面与渐进迁移
 
-> 老项目（jQuery、Vue 页、PHP 模板）里**局部上 React**，或 **React 应用挂到单个 DOM 节点**——是多数团队的真实迁移路径，而非一夜重写。
+老项目（jQuery、Vue 页、PHP 模板）里**局部上 React**，或 **React 应用挂到单个 DOM 节点**，是多数团队的真实迁移路径，而非一夜重写。
 
 ---
 
-## 一、挂载模式
+## 挂载模式
 
 ```mermaid
 flowchart LR
@@ -33,7 +33,7 @@ if (el) {
 
 ---
 
-## 二、与后端模板共存
+## 与后端模板共存
 
 ```html
 <!-- Rails / Django / PHP -->
@@ -42,7 +42,7 @@ if (el) {
 ```
 
 | 注意 | |
-|------|--|
+|------|，|
 | 构建产物独立 entry | |
 | 避免污染全局 `$` | |
 | CSRF token 从 meta 注入 props |
@@ -55,10 +55,10 @@ createRoot(el).render(
 
 ---
 
-## 三、从 jQuery 迁出
+## 从 jQuery 迁出
 
 | 步骤 | |
-|------|--|
+|------|，|
 | 1 新功能用 React 岛 | |
 | 2 旧 DOM 区域冻结，仅修 bug | |
 | 3 抽数据层 API，岛消费同一 REST | |
@@ -68,10 +68,10 @@ createRoot(el).render(
 
 ---
 
-## 四、与 Vue / Angular 并存
+## 与 Vue / Angular 并存
 
 | 方式 | |
-|------|--|
+|------|，|
 | 不同路由页不同框架 | |
 | Web Components 包 React | |
 | 微前端壳子切换 | |
@@ -80,10 +80,10 @@ React 岛内仍遵守 **单 root 单 React 树**。
 
 ---
 
-## 五、样式隔离
+## 样式隔离
 
 | 手段 | |
-|------|--|
+|------|，|
 | CSS Modules / scoped | |
 | 前缀 `.react-app` 包一层 | |
 | Shadow DOM（少用） | |
@@ -92,7 +92,7 @@ React 岛内仍遵守 **单 root 单 React 树**。
 
 ---
 
-## 六、状态与通信
+## 状态与通信
 
 ```tsx
 // 自定义事件与遗留通信
@@ -109,7 +109,7 @@ window.addEventListener('legacy:cart-updated', (e) => {
 
 ---
 
-## 七、构建配置
+## 构建配置
 
 ```ts
 // vite.config 多入口
@@ -125,13 +125,8 @@ build: {
 
 ---
 
-## 八、小结
+## 小结
 
-| 原则 | |
-|------|--|
-| createRoot 挂岛 | |
-| 不双框架同 DOM | |
-| 渐进扩大 React 范围 | |
+createRoot 挂 React 岛，勿与 jQuery 同 DOM 双写；渐进扩大岛范围。
 
-**上一篇**：[02-微前端与模块联邦](./02-微前端与模块联邦.md)  
-**下一篇**：[04-动画与手势](./04-动画与手势.md)
+渐进迁移用 createRoot 挂 React 岛到遗留 HTML 的 DOM 节点；单 widget 单 root，多岛互不影响，逐步扩大岛范围。与后端模板共存：独立 entry、CSRF token 从 meta 注入 props。从 jQuery 迁出：新功能用岛→旧区冻结→统一 API→可选合并 SPA；勿双框架同 DOM。与 Vue/Angular 并存：不同路由页或微前端壳。样式隔离：CSS Modules、前缀包裹。通信：customEvent、URL/localStorage，后端为真相。Vite 多 entry 构建独立 widget bundle。

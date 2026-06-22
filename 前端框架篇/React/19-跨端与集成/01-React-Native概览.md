@@ -1,10 +1,10 @@
 # React Native 概览
 
-> **React Native（RN）** 用 React 写 **iOS / Android**（及 Web）界面，渲染为**原生组件**而非 DOM。语法像 React，运行时与 Web 不同。
+**React Native（RN）** 用 React 写 **iOS / Android**（及 Web）界面，渲染为**原生组件**而非 DOM。语法像 React，运行时与 Web 不同。
 
 ---
 
-## 一、Web React vs RN
+## Web React vs RN
 
 ```mermaid
 flowchart LR
@@ -27,7 +27,7 @@ flowchart LR
 
 ---
 
-## 二、最小示例
+## 最小示例
 
 ```tsx
 import { View, Text, Pressable, StyleSheet } from 'react-native';
@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
 
 ---
 
-## 三、Expo vs 裸 RN
+## Expo vs 裸 RN
 
 | | Expo | 裸 RN |
 |---|------|-------|
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
 
 ---
 
-## 四、与 Web 代码共享
+## 与 Web 代码共享
 
 | 可共享 | 需分叉 |
 |--------|--------|
@@ -92,7 +92,7 @@ packages/
 
 ---
 
-## 五、导航
+## 导航
 
 ```tsx
 // Expo Router 文件路由（类似 Next）
@@ -104,17 +104,17 @@ packages/
 
 ---
 
-## 六、调试与性能
+## 调试与性能
 
 | 工具 | |
-|------|--|
+|------|，|
 | Flipper / React Native DevTools | |
 | Hermes 引擎 | 默认 JS 引擎 |
 | 列表 | FlatList 虚拟化（类似 Web 虚拟列表） |
 
 ---
 
-## 七、何时选 RN？
+## 何时选 RN
 
 | ✅ | ❌ |
 |----|-----|
@@ -124,12 +124,8 @@ packages/
 
 ---
 
-## 八、小结
+## 小结
 
-| 记住 | |
-|------|--|
-| 组件名不同、无 DOM | |
-| Expo 降低门槛 | |
-| 逻辑可 monorepo 共享 | |
+RN 用 View/Text 替 div/span，Expo 降低门槛；业务 Hook 可 monorepo 共享，JSX 通常分叉。
 
-**下一篇**：[02-微前端与模块联邦](./02-微前端与模块联邦.md)
+React Native 用 React 语法写 iOS/Android，渲染原生组件而非 DOM。View/Text/Pressable 对应 div/span/button，StyleSheet 替代 CSS，Metro 打包。Expo 降低上手门槛，裸 RN 适合深度原生定制。与 Web 共享：Hook、Query、类型、utils；分叉：JSX、样式、路由。导航用 Expo Router 或 React Navigation。调试：Flipper、Hermes、FlatList 虚拟化。选型：要原生 App 且团队会 React → RN；纯 H5/SEO → Web。

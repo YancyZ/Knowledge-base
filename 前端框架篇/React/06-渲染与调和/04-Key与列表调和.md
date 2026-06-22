@@ -1,10 +1,10 @@
 # Key 与列表调和
 
-> **`key`** 帮助 React 在列表变化时识别「哪一项是哪一个」。用错 key（尤其 **index**）会导致状态错乱、性能下降、动画异常。
+列表渲染时，**key 帮 React 识别「哪一行还是同一项」**。选错 key（尤其用 index）会在增删、排序时让本地 state 跟错行；改 key 还会强制 remount； key 的放置、index 的适用边界，以及 Fragment 列表的写法。
 
 ---
 
-## 一、key 的作用
+## key 的作用
 
 ```tsx
 {todos.map(todo => (
@@ -27,7 +27,7 @@ flowchart LR
 
 ---
 
-## 二、key 放在哪？
+## key 放在哪？
 
 **key 在兄弟之间**唯一，不是全局唯一。
 
@@ -45,11 +45,11 @@ flowchart LR
 </div>
 ```
 
-**不要** `key={Math.random()}` 或 `key={Date.now()}`——每次 render 变，等于销毁重建。
+**不要** `key={Math.random()}` 或 `key={Date.now()}`，每次 render 变，等于销毁重建。
 
 ---
 
-## 三、index 作为 key 何时有问题？
+## index 作为 key 何时有问题？
 
 ```tsx
 // ⚠️ 列表会 reorder、过滤、头部插入
@@ -75,7 +75,7 @@ function Row({ item }: { item: Item }) {
 
 ---
 
-## 四、key 与 remount
+## key 与 remount
 
 ```tsx
 <Profile key={userId} userId={userId} />
@@ -90,7 +90,7 @@ function Row({ item }: { item: Item }) {
 
 ---
 
-## 五、key 与 Fragment
+## key 与 Fragment
 
 ```tsx
 {pairs.map(p => (
@@ -105,7 +105,7 @@ function Row({ item }: { item: Item }) {
 
 ---
 
-## 六、调和过程（列表插入）
+## 调和过程（列表插入）
 
 ```
 旧:  A(1) B(2) C(3)
@@ -117,7 +117,7 @@ function Row({ item }: { item: Item }) {
 
 ---
 
-## 七、与性能
+## 与性能
 
 | 现象 | 原因 |
 |------|------|
@@ -125,22 +125,14 @@ function Row({ item }: { item: Item }) {
 | 正确 key + reorder | 仅移动 DOM，较快 |
 | 超大列表 | key 正确仍慢 → 虚拟化 |
 
----
-
-## 八、编码规范红线
-
-[React 编码规范](../React编码规范.md)：**禁止**可重排列表用 index 作 key（有 state 时）。
+可重排且带本地 state 的列表，**禁止**用 index 作 key。
 
 ---
 
-## 九、小结
+## 小结
 
-| 要点 | 实践 |
-|------|------|
-| 来源 | 数据 id，非 random |
-| index | 仅静态展示列表 |
-| remount | key 切换实体 |
-| Fragment 列表 | Fragment + key |
+**key** 标识列表项身份，帮助 Diff 复用或移动 DOM；放在 **map 返回的最外层元素**上。用**数据稳定 id**，勿用 random；**index 仅适合静态、不重排**的列表。
 
-**上一篇**：[03-Fiber架构与可中断渲染](./03-Fiber架构与可中断渲染.md)  
-**下一篇**：[05-批处理与自动批处理](./05-批处理与自动批处理.md)
+**key 变化 = remount**，可用来切换实体时重置 state（如 `<Profile key={userId} />`）。Fragment 列表需 `<Fragment key={}>`，短语法 `<>` 不支持 key。
+
+删行后输入框内容跟错行、用了 random key 导致每次 render 重建，都是 key 选错的典型表现。超大列表 key 正确仍慢时，该上虚拟化，别指望改 key 救性能。

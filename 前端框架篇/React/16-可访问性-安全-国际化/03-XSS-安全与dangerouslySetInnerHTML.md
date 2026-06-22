@@ -1,10 +1,10 @@
 # XSS 安全与 dangerouslySetInnerHTML
 
-> React 默认 **转义** JSX 文本，防 **XSS**。一旦用 **`dangerouslySetInnerHTML`** 或把用户 HTML 塞进 DOM，就要自己负责消毒——否则一条评论就能偷 cookie。
+React 默认 **转义** JSX 文本，防 **XSS**。一旦用 **`dangerouslySetInnerHTML`** 或把用户 HTML 塞进 DOM，就要自己负责消毒，否则一条评论就能偷 cookie。
 
 ---
 
-## 一、XSS 是什么？
+## XSS 是什么
 
 ```mermaid
 flowchart LR
@@ -23,7 +23,7 @@ flowchart LR
 
 ---
 
-## 二、React 默认防护
+## React 默认防护
 
 ```tsx
 const userInput = '<img src=x onerror=alert(1)>';
@@ -37,16 +37,18 @@ return <div>{userInput}</div>;
 | `{number}` | 未消毒 HTML 字符串 |
 | 属性 `{href}` 仍要校验 | `javascript:` URL |
 
+JSX 插值自动转义 HTML 实体，script 不会执行。但 href 等属性仍需白名单校验。
+
 ---
 
-## 三、dangerouslySetInnerHTML
+## dangerouslySetInnerHTML
 
 ```tsx
 // ⚠️ 仅 trusted / 已消毒 HTML
 <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
 ```
 
-**命名故意吓人**——提醒开发者承担安全责任。
+**命名故意吓人**，提醒开发者承担安全责任。
 
 | 场景 | 做法 |
 |------|------|
@@ -67,7 +69,7 @@ function RichContent({ html }: { html: string }) {
 
 ---
 
-## 四、富文本编辑器
+## 富文本编辑器
 
 | 方案 | 安全 |
 |------|------|
@@ -75,11 +77,11 @@ function RichContent({ html }: { html: string }) {
 | **Quill** | 配置 whitelist |
 | 直接存 innerHTML | 必须消毒入库 |
 
-见 [04-复杂交互](../04-事件与表单/04-复杂交互-拖拽-上传-富文本.md)。
+结构化编辑器比存 raw HTML 更安全；若存 HTML 必须入库前消毒。
 
 ---
 
-## 五、其它 XSS 入口
+## 其它 XSS 入口
 
 | 入口 | 防护 |
 |------|------|
@@ -103,7 +105,7 @@ function SafeLink({ href, children }: { href: string; children: React.ReactNode 
 
 ---
 
-## 六、CSP（Content-Security-Policy）
+## CSP（Content-Security-Policy）
 
 HTTP 头限制脚本来源：
 
@@ -111,14 +113,11 @@ HTTP 头限制脚本来源：
 Content-Security-Policy: default-src 'self'; script-src 'self'
 ```
 
-| 作用 | |
-|------|--|
-| 即使注入 inline script 也难执行 | |
-| 与 React 无冲突，部署层配置 | |
+即使注入 inline script 也难执行。CSP 在部署层配置，与 React 无冲突。
 
 ---
 
-## 七、Secrets 不进前端
+## Secrets 不进前端
 
 | ❌ | ✅ |
 |----|-----|
@@ -129,24 +128,19 @@ React 代码**全部可被用户查看**。
 
 ---
 
-## 八、Checklist
+## 上线前安全要点
 
-| ☐ | 项 |
-|---|-----|
-| ☐ | 无未消毒 dangerouslySetInnerHTML |
-| ☐ | 用户 URL 白名单 |
-| ☐ | CSP 配置 |
-| ☐ | 依赖漏洞扫描（npm audit） |
+| 项 | 说明 |
+|-----|------|
+| 无未消毒 dangerouslySetInnerHTML | DOMPurify 消毒 |
+| 用户 URL 白名单 | 禁止 javascript: |
+| CSP 配置 | 限制 script 来源 |
+| 依赖漏洞扫描 | npm audit |
 
 ---
 
-## 九、小结
+## 小结
 
-| 原则 | |
-|------|--|
-| 默认 JSX 安全 | |
-| HTML 必须消毒 | |
-| 链接与 CSP 一并考虑 | |
+JSX 默认转义安全；用户 HTML 必须 DOMPurify 消毒，链接白名单 + CSP 一并考虑。
 
-**上一篇**：[02-键盘导航与焦点管理](./02-键盘导航与焦点管理.md)  
-**下一篇**：[04-国际化i18n实践](./04-国际化i18n实践.md)
+XSS 分存储型、反射型、DOM 型。React JSX 插值默认转义安全；dangerouslySetInnerHTML 和未消毒 HTML 是主要风险。用户 HTML 必须 DOMPurify 消毒；Markdown 用 react-markdown；富文本编辑器优先结构化方案。其它入口：href 白名单、target="_blank" 加 rel、禁止 eval、CSP 限制 script。Secrets 不进前端 bundle，敏感 session 用 HttpOnly Cookie。上线前：消毒 innerHTML、URL 白名单、CSP、npm audit。

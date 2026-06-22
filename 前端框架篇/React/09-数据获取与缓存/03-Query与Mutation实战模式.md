@@ -1,12 +1,12 @@
 # Query 与 Mutation 实战模式
 
-> 会用 `useQuery` 只是起点。生产里还要处理：**分页、乐观更新、预取、并行/依赖查询、mutation 后 cache 怎么变**。
+分页、无限滚动、依赖查询、prefetch、乐观更新，TanStack Query 的实战模式都围绕 **queryKey 设计** 和 **mutation 后如何更新 cache**；常见场景与反模式。
 
 ---
 
-## 一、分页与无限滚动
+## 分页与无限滚动
 
-### 1.1 页码分页
+### 页码分页
 
 ```tsx
 import { keepPreviousData } from '@tanstack/react-query';
@@ -32,7 +32,7 @@ function OrderList() {
 
 | `keepPreviousData` | 切页时先显示上一页数据，减少闪烁 |
 
-### 1.2 useInfiniteQuery
+### useInfiniteQuery
 
 ```tsx
 const {
@@ -59,7 +59,7 @@ flowchart LR
 
 ---
 
-## 二、依赖查询（串行）
+## 依赖查询（串行）
 
 ```tsx
 const { data: user } = useQuery({
@@ -78,7 +78,7 @@ B 依赖 A 的结果 → B 的 `enabled` 等 A 就绪。
 
 ---
 
-## 三、并行查询
+## 并行查询
 
 ```tsx
 const results = useQueries({
@@ -93,7 +93,7 @@ const results = useQueries({
 
 ---
 
-## 四、预取 prefetchQuery
+## 预取 prefetchQuery
 
 ```tsx
 function UserRow({ id, name }: { id: string; name: string }) {
@@ -119,9 +119,9 @@ function UserRow({ id, name }: { id: string; name: string }) {
 
 ---
 
-## 五、Mutation 后更新 cache
+## Mutation 后更新 cache
 
-### 5.1 invalidate（简单可靠）
+### invalidate（简单可靠）
 
 ```tsx
 const queryClient = useQueryClient();
@@ -136,7 +136,7 @@ useMutation({
 
 标记 stale → 有 observer 的 query 自动 refetch。
 
-### 5.2 setQueryData（即时 UI）
+### setQueryData（即时 UI）
 
 ```tsx
 useMutation({
@@ -154,7 +154,7 @@ useMutation({
 | invalidate | 列表复杂、服务端算字段 |
 | setQueryData | 已知如何合并、要快 |
 
-### 5.3 乐观更新
+### 乐观更新
 
 ```tsx
 useMutation({
@@ -189,7 +189,7 @@ sequenceDiagram
 
 ---
 
-## 六、select 派生数据
+## select 派生数据
 
 ```tsx
 const { data: names } = useQuery({
@@ -203,7 +203,7 @@ const { data: names } = useQuery({
 
 ---
 
-## 七、Query 与表单
+## Query 与表单
 
 | 模式 | 说明 |
 |------|------|
@@ -218,7 +218,7 @@ const form = useForm({ values: data }); // RHF v7+ values 同步
 
 ---
 
-## 八、反模式
+## 反模式
 
 | ❌ | ✅ |
 |----|-----|
@@ -228,14 +228,10 @@ const form = useForm({ values: data }); // RHF v7+ values 同步
 
 ---
 
-## 九、小结
+## 小结
 
-| 场景 | API |
-|------|-----|
-| 分页 | `keepPreviousData` |
-| 无限滚动 | `useInfiniteQuery` |
-| 预取 | `prefetchQuery` |
-| 写后刷新 | `invalidateQueries` / 乐观更新 |
+**分页**：`keepPreviousData` 减闪烁；**无限滚动**：`useInfiniteQuery` + `fetchNextPage`。**依赖查询**：下游 `enabled: !!upstreamId`；并行用 **useQueries**。
 
-**上一篇**：[02-TanStack-Query核心概念](./02-TanStack-Query核心概念.md)  
-**下一篇**：[04-SWR与Alternatives对比](./04-SWR与Alternatives对比.md)
+**prefetchQuery** 悬停预取；mutation 后 **invalidateQueries** 或 **setQueryData**。**乐观更新**：onMutate 改 cache，失败 rollback。
+
+常见错因：queryKey 是否含 filters？mutation 后 UI 未更新，invalidate 还是 setQueryData 更合适？

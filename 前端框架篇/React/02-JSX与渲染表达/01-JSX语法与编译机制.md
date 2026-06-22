@@ -1,16 +1,16 @@
 # JSX 语法与编译机制
 
-> **JSX** 是在 JavaScript 里写 HTML 结构的语法扩展。它不是字符串，编译后变成 `React.createElement` 或 **jsx-runtime** 函数调用。
+JSX 是写在 JS/TS 里的语法糖，不是 HTML 字符串，编译后变成 `createElement` 或 `jsx-runtime` 调用，产出 React Element 描述对象。搞清编译链和常见坑，写模板会稳很多。
 
 ---
 
-## 一、JSX 是什么？
+## JSX 是什么，和 HTML 模板有何不同
 
 ```tsx
 const element = <h1 className="title">Hello</h1>;
 ```
 
-大致等价于（经典运行时）：
+经典运行时大致等价于：
 
 ```javascript
 const element = React.createElement(
@@ -26,9 +26,7 @@ const element = React.createElement(
 | XSS | 需注意转义 | 默认转义文本 |
 | 逻辑 | 难嵌入 if/for | 直接用 `{}` |
 
----
-
-## 二、为什么需要 JSX？
+为什么用 JSX：结构与逻辑同文件，组件边界清晰；编译期能抓未闭合标签；工具链友好（跳转、重构、TS 类型）。
 
 ```tsx
 function UserBadge({ name, vip }: { name: string; vip: boolean }) {
@@ -41,17 +39,11 @@ function UserBadge({ name, vip }: { name: string; vip: boolean }) {
 }
 ```
 
-| 好处 | 说明 |
-|------|------|
-| 结构与逻辑同文件 | 组件边界清晰 |
-| 编译期检查 | 未闭合标签、部分 typo 可报错 |
-| 工具链友好 | 跳转、重构、TS 类型 |
-
 ---
 
-## 三、基本语法规则
+## 基本语法：根节点、表达式、属性命名
 
-### 3.1 必须有一个根（或 Fragment）
+**必须有一个根（或 Fragment）**：
 
 ```tsx
 // ❌ 相邻多个根（旧语法）
@@ -69,28 +61,7 @@ return (
 );
 ```
 
-### 3.2 闭合标签
-
-| 类型 | 写法 |
-|------|------|
-| 有子节点 | `<div>...</div>` |
-| 自闭合 | `<img />`、`<input />`、`<br />` |
-
-### 3.3 JavaScript 表达式 `{ }`
-
-```tsx
-const count = 3;
-return (
-  <ul>
-    <li>{count + 1}</li>
-    <li>{user.name.toUpperCase()}</li>
-    <li>{formatDate(createdAt)}</li>
-  </ul>
-);
-```
-
-**可以放**：表达式（有返回值）  
-**不能放**：语句（if、for、function 声明、class）
+**`{}` 内必须是表达式**，不能是语句：
 
 ```tsx
 // ❌
@@ -101,7 +72,7 @@ return <div>{ ok ? 'yes' : 'no' }</div>;
 return <div>{ ok && 'yes' }</div>;
 ```
 
-### 3.4 属性命名差异
+**HTML 与 JSX 属性命名差异**：
 
 | HTML | JSX | 原因 |
 |------|-----|------|
@@ -117,17 +88,11 @@ return <div>{ ok && 'yes' }</div>;
 <div style={{ backgroundColor: '#fff', fontSize: 14 }} />
 ```
 
-### 3.5 布尔与省略属性
-
-```tsx
-<input disabled={true} />   // 可写
-<input disabled />            // 等价 disabled={true}
-<input disabled={false} />    // 不会出现在 DOM
-```
+布尔属性可省略值：`<input disabled />` 等价 `disabled={true}`；`disabled={false}` 不会出现在 DOM。
 
 ---
 
-## 四、展开属性
+## 展开属性与 children
 
 ```tsx
 type InputProps = React.ComponentProps<'input'>;
@@ -140,14 +105,9 @@ function TextField(props: InputProps) {
 <input {...defaults} {...props} className="final" />
 ```
 
-| 场景 | 用法 |
-|------|------|
-| 透传 DOM 属性 | `{...rest}` |
-| 合并 className | `clsx(defaults, props.className)` |
+合并 `className` 常用 `clsx` 或 shadcn 的 `cn`（tailwind-merge + clsx）。
 
----
-
-## 五、children
+**children** 是默认插槽：
 
 ```tsx
 function Card({ children }: { children: React.ReactNode }) {
@@ -160,32 +120,18 @@ function Card({ children }: { children: React.ReactNode }) {
 </Card>
 ```
 
-| `React.ReactNode` 可表示 | 示例 |
-|--------------------------|------|
-| 元素 | `<div />` |
-| 文本 | `'hello'` |
-| 数字 | `{42}` |
-| 数组 | `{items.map(...)}` |
-| null / undefined / boolean | 不渲染 |
-| Portal、Fragment | 合法 |
+| `React.ReactNode` 可表示 | 不渲染 |
+|--------------------------|--------|
+| 元素、文本、数字、数组 | `null`、`undefined`、`false` |
+| Portal、Fragment | `true`（单独 true 不显示） |
 
 ---
 
-## 六、编译机制：Classic vs Automatic Runtime
+## 编译机制：Classic vs Automatic Runtime
 
-### 6.1 Classic（React 17 前）
+**Classic（React 17 前）**：每文件需 `import React from 'react'`，编译为 `React.createElement(...)`。
 
-每个文件需：
-
-```tsx
-import React from 'react';
-```
-
-编译为 `React.createElement(type, props, ...children)`。
-
-### 6.2 Automatic（`react-jsx` / `react-jsxdev`）
-
-`tsconfig` / Babel 配置 `jsx: react-jsx` 后：
+**Automatic（`react-jsx`）**：`tsconfig` 设 `jsx: react-jsx` 后：
 
 ```tsx
 // 源码
@@ -202,8 +148,6 @@ _jsx('div', { id: 'a', children: 'hi' });
 | 运行时入口 | `react` | `react/jsx-runtime` |
 | 开发 | — | `react-jsxdev` 带调试信息 |
 
-### 6.3 编译流水线
-
 ```mermaid
 flowchart LR
   TSX[.tsx 源码] --> Babel[Babel / esbuild / SWC]
@@ -216,7 +160,7 @@ Vite 默认用 **esbuild** 转 TS/JSX，速度快。
 
 ---
 
-## 七、JSX 与 TypeScript
+## JSX 与 TypeScript
 
 ```tsx
 interface ButtonProps {
@@ -236,13 +180,11 @@ function Button({ variant = 'primary', ...rest }: ButtonProps) {
 | `React.ComponentProps<'button'>` | 继承原生 button 属性 |
 | `React.CSSProperties` | style 对象 |
 
-详见 [13-React与TypeScript](../13-React与TypeScript/)。
-
 ---
 
-## 八、常见陷阱
+## 常见陷阱
 
-### 8.1 `false` / `0` 与 `&&`
+### `0` 与 `&&` 条件渲染
 
 ```tsx
 {count && <span>{count}</span>}
@@ -258,14 +200,7 @@ function Button({ variant = 'primary', ...rest }: ButtonProps) {
 | `''` | 空 |
 | `null` / `undefined` | 空 |
 
-### 8.2 注释
-
-```tsx
-{/* 这是 JSX 注释 */}
-// 这是 JS 注释，在 JSX 标签外
-```
-
-### 8.3 大写 vs 小写标签
+### 大小写区分组件与原生标签
 
 ```tsx
 <dialog />     // 原生 HTML 元素
@@ -274,36 +209,33 @@ function Button({ variant = 'primary', ...rest }: ButtonProps) {
 
 React 用**首字母大小写**区分 intrinsic 与组件。
 
-### 8.4 dangerouslySetInnerHTML
+### dangerouslySetInnerHTML
 
 ```tsx
 <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
 ```
 
-仅用于**已消毒** HTML；优先正常 JSX。见 [16-安全](../16-可访问性-安全-国际化/03-XSS-安全与dangerouslySetInnerHTML.md)。
+仅用于**已消毒** HTML；优先正常 JSX。
+
+### JSX 注释
+
+```tsx
+{/* 这是 JSX 注释 */}
+// 这是 JS 注释，在 JSX 标签外
+```
 
 ---
 
-## 九、JSX 与 Figma / 设计稿
+## 小结
 
-| 设计 | JSX |
-|------|-----|
-| Auto Layout | Flex / Grid |
-| Component / Variant | React 组件 + props |
-| Text style | className / design token |
+JSX 是语法糖，编译为 `createElement` 或 **jsx-runtime**；Automatic Runtime 下可不 `import React`。
 
-组件化思维与设计系统一致，见 [10-设计系统](../../../前端工程化体系/10-设计系统与组件工程化.md)。
+**语法**：`{}` 内必须是**表达式**；HTML 属性用 `className`、`htmlFor` 等 React 命名；多根用 Fragment `<>...</>`。
 
----
+**属性与组合**：`{...rest}` 透传 DOM 属性，注意覆盖顺序；`children` 类型用 `React.ReactNode`。
 
-## 十、小结
+**编译**：Vite 经 esbuild 转 JSX；`jsx: react-jsx` 走 Automatic Runtime。
 
-| 要点 | 记忆 |
-|------|------|
-| JSX 是语法糖 | 编译成 createElement / jsx |
-| `{}` 内是表达式 | 不是语句 |
-| `className` / `htmlFor` | HTML 属性映射 |
-| Automatic Runtime | 可不 import React |
-| `0 && <X />` | 会渲染 0 |
+**易混点**：`0 && <X />` 会渲染 **0**；小写标签是 DOM，大写是组件；`dangerouslySetInnerHTML` 必须消毒。
 
-**下一篇**：[02-条件渲染与列表渲染](./02-条件渲染与列表渲染.md)
+常见错因：条件渲染左侧会不会是 `0` 或 `''`？组件名是否 PascalCase？style 是否传了对象而非字符串？

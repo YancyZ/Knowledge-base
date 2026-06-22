@@ -1,10 +1,10 @@
 # React Router v6 基础
 
-> **React Router** 把 URL 映射到 React 组件，实现 SPA 内「多页面」体验。v6 起 API 更简洁：**Routes / Route / element**，不再有 `component` 与 `render` 混用。
+SPA 需要路由把 URL 映射到组件：**可分享、可后退**，路径即位置。React Router v6 用 `element={<Page />}` 映射组件，新项目优先 **createBrowserRouter**（Data Router）。
 
 ---
 
-## 一、为什么需要路由？
+## 为什么需要路由？
 
 ```mermaid
 flowchart LR
@@ -21,7 +21,7 @@ flowchart LR
 
 ---
 
-## 二、安装与最小示例
+## 安装与最小示例
 
 ```bash
 pnpm add react-router-dom
@@ -67,9 +67,9 @@ function RootLayout() {
 
 ---
 
-## 三、声明式 vs Data Router
+## 声明式 vs Data Router
 
-### 3.1 旧式 JSX 路由（仍可用）
+### 旧式 JSX 路由（仍可用）
 
 ```tsx
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
@@ -82,7 +82,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 </BrowserRouter>
 ```
 
-### 3.2 Data Router（推荐）
+### Data Router（推荐）
 
 ```tsx
 createBrowserRouter([...])
@@ -94,11 +94,9 @@ createBrowserRouter([...])
 | 错误边界 `errorElement` | 需手写 |
 | 推荐新项目 | 小 demo 够用 |
 
-详见 [03-Data-Router与Loader-Action](./03-Data-Router与Loader-Action.md)。
-
 ---
 
-## 四、常用 Hooks
+## 常用 Hooks
 
 ```tsx
 import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
@@ -122,11 +120,9 @@ function UserDetail() {
 | `useLocation` | 当前 location 对象 |
 | `useSearchParams` | `?page=1` 读写 |
 
-与 [08-URL状态](../08-状态管理/06-URL状态与路由参数.md) 配合。
-
 ---
 
-## 五、Link vs NavLink
+## Link vs NavLink
 
 ```tsx
 <NavLink
@@ -146,13 +142,13 @@ function UserDetail() {
 
 ---
 
-## 六、相对路径
+## 相对路径
 
 v6 路由**默认相对**父 path：
 
 ```tsx
 { path: 'users', children: [
-  { index: true, defined element: <UserList /> },
+  { index: true, element: <UserList /> },
   { path: ':userId', element: <UserDetail /> },  // 实际 /users/:userId
 ]}
 ```
@@ -161,7 +157,7 @@ v6 路由**默认相对**父 path：
 
 ---
 
-## 七、404 与通配
+## 404 与通配
 
 ```tsx
 { path: '*', element: <NotFound /> }
@@ -171,7 +167,7 @@ v6 路由**默认相对**父 path：
 
 ---
 
-## 八、与 TanStack Query
+## 与 TanStack Query
 
 路由变 → 组件 mount → `useParams` 变 → Query key 变：
 
@@ -186,13 +182,10 @@ const { data } = useQuery({
 
 ---
 
-## 九、小结
+## 小结
 
-| 概念 | 记住 |
-|------|------|
-| element | 渲染哪个组件 |
-| Outlet | 子路由插槽 |
-| useParams | 读路径参数 |
-| createBrowserRouter | 新项目首选 |
+v6 用 **`element={<Page />}`** 映射组件；**`<Outlet />`** 渲染子路由。**useNavigate** 编程式导航；**useParams / useSearchParams** 读 URL 状态。
 
-**下一篇**：[02-嵌套路由与Layout](./02-嵌套路由与Layout.md)
+新项目优先 **createBrowserRouter**（Data Router）。**NavLink** 自带 active 样式；404 用 `path="*"`。
+
+常见错因：路由参数是否进了 Query 的 queryKey？404 路由是否放在表末尾？

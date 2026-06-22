@@ -1,10 +1,10 @@
 # Context 进阶与性能
 
-> Context 适合**低频变更的全局配置**。用错会导致「改一行 theme，整页 re-render」。本篇讲拆分、memo、selector 替代思路。
+Context 适合主题、locale 等**低频全局配置**；把高频变更的大对象塞进单一 Context，会导致所有 consumer 跟着 re-render；问题来源、拆分与 memo 优化，以及何时改用 Zustand selector。
 
 ---
 
-## 一、性能问题从哪来？
+## 性能问题从哪来？
 
 ```tsx
 const AppContext = createContext({
@@ -30,7 +30,7 @@ flowchart TB
 
 ---
 
-## 二、拆分 Context
+## 拆分 Context
 
 ```tsx
 <UserContext.Provider value={user}>
@@ -51,7 +51,7 @@ flowchart TB
 
 ---
 
-## 三、稳定 value
+## 稳定 value
 
 ```tsx
 // ❌ 每次 render 新对象
@@ -66,7 +66,7 @@ const value = useMemo(() => ({ theme, setTheme }), [theme]);
 
 ---
 
-## 四、Context 不能 selector
+## Context 不能 selector
 
 原生 `useContext` **全量订阅** value。需要「只订阅 cart.count」时：
 
@@ -82,7 +82,7 @@ const count = useStore(state => state.cart.itemCount);
 
 ---
 
-## 五、何时仍用 Context
+## 何时仍用 Context
 
 | ✅ | ❌ |
 |----|-----|
@@ -92,7 +92,7 @@ const count = useStore(state => state.cart.itemCount);
 
 ---
 
-## 六、与 Zustand 对比
+## 与 Zustand 对比
 
 | | Context | Zustand |
 |---|---------|---------|
@@ -103,13 +103,10 @@ const count = useStore(state => state.cart.itemCount);
 
 ---
 
-## 七、小结
+## 小结
 
-| 优化 | 手段 |
-|------|------|
-| 少 re-render | 拆分 + useMemo value |
-| 细订阅 | Zustand / selector 库 |
-| 数据请求 | 不用 Context 缓存 |
+Context **value 变** → 所有 `useContext` 消费者 re-render，无内置 selector。优化：**拆分 Context**、**useMemo** 稳定 value、state/dispatch 分离。
 
-**上一篇**：[01-状态分类与放置原则](./01-状态分类与放置原则.md)  
-**下一篇**：[03-Zustand与轻量全局状态](./03-Zustand与轻量全局状态.md)
+高频变更或细订阅需求改用 **Zustand** 等 selector 库。Context 仍适合主题、locale 等**低频全局配置**；API 数据用 Query，勿塞进 Context。
+
+常见错因：Provider value 是否每次 render 新建对象？能否拆分 Context 或改用 Zustand selector？

@@ -1,10 +1,10 @@
 # Actions 与 useActionState
 
-> **Actions** 把「提交表单 / 调服务端」变成 React 一等公民：`form action={fn}` 自动处理 **pending**、**错误** 与 **渐进增强**。`useActionState` 把返回值绑到 UI。
+**Actions** 把「提交表单 / 调服务端」变成 React 一等公民：`form action={fn}` 自动处理 **pending**、**错误** 与 **渐进增强**。`useActionState` 把返回值绑到 UI。
 
 ---
 
-## 一、数据流
+## 数据流
 
 ```mermaid
 sequenceDiagram
@@ -27,7 +27,7 @@ sequenceDiagram
 
 ---
 
-## 二、useActionState 基础
+## useActionState 基础
 
 ```tsx
 import { useActionState } from 'react';
@@ -77,7 +77,7 @@ function LoginForm() {
 
 ---
 
-## 三、useFormStatus
+## useFormStatus
 
 在 **form 子组件** 读 pending，无需 props 下钻：
 
@@ -102,7 +102,7 @@ function SubmitButton() {
 
 ---
 
-## 四、与 useTransition
+## 与 useTransition
 
 | useActionState | useTransition |
 |----------------|---------------|
@@ -114,7 +114,7 @@ function SubmitButton() {
 
 ---
 
-## 五、Server Action（Next.js）
+## Server Action（Next.js）
 
 ```tsx
 'use server';
@@ -131,11 +131,9 @@ import { createItem } from './actions';
 const [state, action, pending] = useActionState(createItem, null);
 ```
 
-见 [14-模块](../14-服务端与元框架/04-Server-Actions与表单变更.md)。
-
 ---
 
-## 六、非表单 action
+## 非表单 action
 
 ```tsx
 <button formAction={deleteAction}>删除</button>
@@ -145,7 +143,7 @@ const [state, action, pending] = useActionState(createItem, null);
 
 ---
 
-## 七、错误处理
+## 错误处理
 
 ```tsx
 async function action(prev, formData) {
@@ -162,7 +160,7 @@ async function action(prev, formData) {
 
 ---
 
-## 八、与 React Hook Form
+## 与 React Hook Form
 
 | RHF | Actions |
 |-----|---------|
@@ -173,13 +171,8 @@ async function action(prev, formData) {
 
 ---
 
-## 九、小结
+## 小结
 
-| API | 场景 |
-|-----|------|
-| `form action` | 提交入口 |
-| `useActionState` | state + pending |
-| `useFormStatus` | 子按钮 pending |
+form action 绑定异步函数，useActionState 管 state/pending，useFormStatus 读子组件 pending。
 
-**上一篇**：[01-React19要点](./01-React19要点.md)  
-**下一篇**：[03-React-Compiler概览](./03-React-Compiler概览.md)
+Actions 数据流：submit → isPending true → action 执行 → 返回 state → isPending false。useActionState 接收 `(prevState, formData) => newState` 和初始 state，返回 `[state, formAction, isPending]`。useFormStatus 在 form 子组件读 pending，无需 props 下钻。与 useTransition 分工：表单用 Actions，搜索过滤用 transition。Next.js Server Action 用 'use server' + revalidatePath。错误在 action 内 try/catch 返回；复杂表单可与 RHF 并存。

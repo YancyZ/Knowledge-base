@@ -1,10 +1,10 @@
 # Virtual DOM 与 Diff
 
-> **Virtual DOM** 是内存中对 UI 的树形描述；**Diff（协调）** 对比新旧树，找出最小 DOM 变更。目标不是「Virtual DOM 最快」，而是**可预测 + 批量更新**。
+Virtual DOM 让声明式 UI 的更新可预测、可批量，目标不是永远比手写 DOM 快； React Element 是什么、Diff 的三条规则，以及同 type 组件为何能保留 state。
 
 ---
 
-## 一、为什么需要 Virtual DOM？
+## 为什么需要 Virtual DOM？
 
 | 命令式 | 声明式 + Virtual DOM |
 |--------|----------------------|
@@ -21,7 +21,7 @@ return <ul>{items.map(i => <li key={i.id}>{i.name}</li>)}</ul>;
 
 ---
 
-## 二、React Element 结构
+## React Element 结构
 
 ```tsx
 const el = <div className="a">hi</div>;
@@ -43,7 +43,7 @@ const el = <div className="a">hi</div>;
 
 ---
 
-## 三、Diff 三条启发式规则
+## Diff 三条启发式规则
 
 React 对比两棵树时采用 **O(n) 近似** 算法（非最优树编辑距离）：
 
@@ -54,7 +54,7 @@ flowchart TB
   R3[规则3 key] --> List[列表项身份]
 ```
 
-### 3.1 规则 1：不同类型 → 整树替换
+### 不同类型 → 整树替换
 
 ```tsx
 // 从 div 变 span → 内部全部重建
@@ -67,17 +67,17 @@ flowchart TB
 <Profile key={userId} userId={userId} />
 ```
 
-### 3.2 规则 2：只比较同层兄弟
+### 只比较同层兄弟
 
 不会自动识别「把节点从左边移到右边」跨层级，**同层** reorder 靠 key。
 
-### 3.3 规则 3：key 标识列表项
+### key 标识列表项
 
-见 [04-Key与列表调和](./04-Key与列表调和.md)。
+列表场景下，key 帮 React 识别「哪一行还是同一项」，避免错误复用 DOM 与组件 state。
 
 ---
 
-## 四、同 type 的 DOM 节点
+## 同 type 的 DOM 节点
 
 只更新**变化的属性**：
 
@@ -91,7 +91,7 @@ flowchart TB
 
 ---
 
-## 五、组件 type 的 Diff
+## 组件 type 的 Diff
 
 `type === Button`（函数）→ 同一组件 **更新**，保留 state，执行新 render。
 
@@ -99,13 +99,13 @@ flowchart TB
 
 ---
 
-## 六、children Diff
+## children Diff
 
-### 6.1 单 child
+### 单 child
 
 新旧都是单个 element → 递归 diff。
 
-### 6.2 多 child 列表
+### 多 child 列表
 
 1. 无 key：按**索引**对比，插入删除可能低效  
 2. 有 key：按 key 匹配，支持 reorder
@@ -117,7 +117,7 @@ flowchart TB
 
 ---
 
-## 七、与性能的关系
+## 与性能的关系
 
 | 说法 | 真相 |
 |------|------|
@@ -127,7 +127,7 @@ flowchart TB
 
 ---
 
-## 八、宿主环境（Host）
+## 宿主环境（Host）
 
 | 环境 | 宿主 |
 |------|------|
@@ -135,18 +135,14 @@ flowchart TB
 | React Native | 原生 View |
 | 测试 | react-test-renderer 内存 |
 
-Fiber 是协调的实现结构，见下一篇。
+Fiber 是协调的实现结构，把 Element 树映射为可中断的工作单元。
 
 ---
 
-## 九、小结
+## 小结
 
-| 概念 | 记忆 |
-|------|------|
-| Element | 轻量描述 |
-| Diff | 类型变→替换；同层；key 列表 |
-| 组件同 type | 保留 state |
-| key | 列表身份 |
+**React Element** 是轻量 UI 描述对象，不是真实 DOM；每次 render 生成新树，旧树用于对比。
 
-**上一篇**：[01-渲染流程总览](./01-渲染流程总览.md)  
-**下一篇**：[03-Fiber架构与可中断渲染](./03-Fiber架构与可中断渲染.md)
+Diff 遵循三条规则：**类型变 → 整棵子树替换**；**只比较同层兄弟**；**列表靠 key 识别身份**。同 type 的组件实例会复用、state 保留；type 变则 remount。
+
+Virtual DOM 换的是可预测的开发模型，性能靠减少 render、稳定 key、`memo` 等优化手段。出问题时先查：是否频繁切换根 type 导致 state 丢失？列表 key 是否稳定？

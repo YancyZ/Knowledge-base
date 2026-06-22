@@ -1,10 +1,10 @@
 # Storybook 与视觉回归
 
-> **Storybook** 在隔离环境展示组件各 **state / variant**，用于文档、设计对齐和**视觉回归测试**（Chromatic 等）。
+**Storybook** 在隔离环境展示组件各 **state / variant**，用于文档、设计对齐和**视觉回归测试**（Chromatic 等）。
 
 ---
 
-## 一、Storybook 解决什么？
+## Storybook 解决什么
 
 ```mermaid
 flowchart LR
@@ -21,9 +21,11 @@ flowchart LR
 | 状态矩阵 | primary/disabled/loading |
 | 设计协作 | 设计师可点 |
 
+Storybook 让组件在隔离环境展示各种状态，不必启动整应用。
+
 ---
 
-## 二、安装与 Story
+## 安装与 Story
 
 ```bash
 pnpm dlx storybook@latest init
@@ -52,9 +54,11 @@ export const Disabled: Story = {
 };
 ```
 
+Meta 定义组件和文档，Story 用 args 描述各 variant 状态。
+
 ---
 
-## 三、Decorator 包 Provider
+## Decorator 包 Provider
 
 ```tsx
 const meta: Meta<typeof Dashboard> = {
@@ -70,11 +74,11 @@ const meta: Meta<typeof Dashboard> = {
 };
 ```
 
-全局 decorator 在 `.storybook/preview.tsx` 配置。
+全局 decorator 在 `.storybook/preview.tsx` 配置，为需要 Provider 的 story 包 Query/Router。
 
 ---
 
-## 四、Controls 与 Args
+## Controls 与 Args
 
 ```tsx
 export const Playground: Story = {
@@ -88,11 +92,11 @@ export const Playground: Story = {
 };
 ```
 
-侧边栏动态改 props，快速验边界。
+侧边栏 Controls 动态改 props，快速验边界和 variant 组合。
 
 ---
 
-## 五、交互测试（Storybook Test）
+## 交互测试（Storybook Test）
 
 ```tsx
 import { expect, userEvent, within } from '@storybook/test';
@@ -106,11 +110,11 @@ export const Submit: Story = {
 };
 ```
 
-与 Vitest 集成可 CI 跑 story tests。
+play 函数在 story 内跑交互断言，与 Vitest 集成可 CI 跑 story tests。
 
 ---
 
-## 六、视觉回归
+## 视觉回归
 
 | 工具 | 方式 |
 |------|------|
@@ -122,21 +126,21 @@ export const Submit: Story = {
 
 ---
 
-## 七、与 RTL 分工
+## 与 RTL 分工
 
 | Storybook | RTL |
 |-----------|-----|
 | 视觉、文档、设计态 | 逻辑、交互断言 |
 | 组件矩阵 | 业务流程 |
 
-**互补**，非替代。
+**互补**，非替代。Storybook 管视觉和状态矩阵，RTL 管逻辑和业务流程断言。
 
 ---
 
-## 八、最佳实践
+## 最佳实践
 
 | 实践 | |
-|------|--|
+|------|，|
 | 每个 UI 组件至少 1 story | |
 | 覆盖 empty / error / loading | |
 | 与 Figma 同名 variant | |
@@ -144,13 +148,8 @@ export const Submit: Story = {
 
 ---
 
-## 九、小结
+## 小结
 
-| 要点 | |
-|------|--|
-| stories 描述组件态 | |
-| decorator 包 Provider | |
-| Chromatic 视觉 CI | |
+Storybook 展示组件态矩阵，与 RTL 互补；Chromatic 做视觉回归 CI。
 
-**上一篇**：[04-Hooks与Provider测试](./04-Hooks与Provider测试.md)  
-**下一模块**：[16-可访问性-安全-国际化](../16-可访问性-安全-国际化/01-可访问性基础与ARIA.md)
+Storybook 在隔离环境展示组件各 state/variant，用于文档、设计对齐和手工 QA。Meta + Story + args 描述组件态；decorator 包 Query/Router 等 Provider。Controls 动态验边界。play 函数做 story 级交互测试。视觉回归用 Chromatic（云端 diff）或 lost-pixel/Playwright 截图对比。与 RTL 互补：Storybook 管视觉和状态矩阵，RTL 管逻辑断言。最佳实践：每组件至少 1 story，覆盖 empty/error/loading，variant 与 Figma 对齐。

@@ -1,10 +1,10 @@
 # 生命周期与 Hooks 对照表
 
-> 维护遗留类组件或面试时，需要 **生命周期 ↔ Hooks** 的一一对照。本篇是速查表 + 迁移示例。
+维护遗留类组件或面试时，需要 **生命周期 ↔ Hooks** 的一一对照。本篇是速查表 + 迁移示例。
 
 ---
 
-## 一、总对照表
+## 总对照表
 
 | 类组件生命周期 | Hooks 等价 | 注意 |
 |----------------|------------|------|
@@ -21,7 +21,7 @@
 
 ---
 
-## 二、挂载与卸载
+## 挂载与卸载
 
 ```tsx
 // 类
@@ -47,9 +47,11 @@ flowchart LR
   Unmount --> Clean[cleanup 执行]
 ```
 
+didMount + willUnmount 合并为一个 useEffect，cleanup 函数对应 willUnmount。
+
 ---
 
-## 三、props 变化
+## props 变化
 
 ```tsx
 // 类
@@ -66,11 +68,11 @@ useEffect(() => {
 }, [id]);
 ```
 
-**依赖数组即「何时相当于 didUpdate」**。
+**依赖数组即「何时相当于 didUpdate」**，dep 变化时 effect 重新执行。
 
 ---
 
-## 四、getDerivedStateFromProps 反模式
+## getDerivedStateFromProps 反模式
 
 ```tsx
 // ❌ 旧：props → state 镜像
@@ -85,11 +87,11 @@ static getDerivedStateFromProps(props, state) {
 // ✅ 非受控 + key：key={props.id}  remount
 ```
 
-见 [03-Props](../03-组件基础/02-Props与单向数据流.md)。
+props 镜像到 state 是反模式；受控直接用 props，非受控用 key remount。
 
 ---
 
-## 五、useLayoutEffect 对照
+## useLayoutEffect 对照
 
 需要在 **浏览器绘制前** 读/写 DOM：
 
@@ -104,7 +106,7 @@ useLayoutEffect(() => {
 
 ---
 
-## 六、逻辑复用对照
+## 逻辑复用对照
 
 | 类时代 | Hooks 时代 |
 |--------|------------|
@@ -114,7 +116,7 @@ useLayoutEffect(() => {
 
 ---
 
-## 七、面试速记
+## 面试速记
 
 | 问 | 答 |
 |----|-----|
@@ -125,12 +127,8 @@ useLayoutEffect(() => {
 
 ---
 
-## 八、小结
+## 小结
 
-| 文档 | |
-|------|--|
-| 本表作迁移速查 | |
-| 详细 setState 见下一篇 | |
+didMount→useEffect([])，didUpdate→useEffect([dep])，卸载→cleanup；本表作迁移速查。
 
-**上一篇**：[01-类组件语法与生命周期](./01-类组件语法与生命周期.md)  
-**下一篇**：[03-setState机制与常见陷阱](./03-setState机制与常见陷阱.md)
+生命周期对照：constructor→useState 初值、didMount→useEffect([])、didUpdate→useEffect([dep])、willUnmount→effect cleanup、shouldComponentUpdate→memo、getDerivedStateFromProps→避免 derived state、getSnapshotBeforeUpdate→useLayoutEffect、didCatch→仍用 class ErrorBoundary、setState→useState/useReducer、contextType→useContext。挂载+卸载合并为一个 effect + cleanup。props 变化用 deps 数组替代 prevProps 比较。getDerivedStateFromProps 是反模式，受控用 props 或 key remount。HOC/Render Props 时代逻辑复用 → 自定义 Hook。

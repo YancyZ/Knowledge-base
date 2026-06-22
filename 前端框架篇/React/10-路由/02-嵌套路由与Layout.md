@@ -1,10 +1,10 @@
 # 嵌套路由与 Layout
 
-> 中后台常见：**顶栏 + 侧栏 + 内容区**。嵌套路由让 Layout 只 mount 一次，子页在 `<Outlet />` 里切换，避免整页重绘。
+嵌套路由让 **Layout 只 mount 一次**，子页在 `<Outlet />` 里切换，顶栏、侧栏不必每页重复包一层； children 配置、index 默认子页、相对 Link 与鉴权 Layout 模式。
 
 ---
 
-## 一、结构示意
+## 结构示意
 
 ```mermaid
 flowchart TB
@@ -24,7 +24,7 @@ URL 示例：
 
 ---
 
-## 二、路由配置
+## 路由配置
 
 ```tsx
 const router = createBrowserRouter([
@@ -64,7 +64,7 @@ function AppLayout() {
 
 ---
 
-## 三、index 路由
+## index 路由
 
 | 写法 | 含义 |
 |------|------|
@@ -78,7 +78,7 @@ function AppLayout() {
 
 ---
 
-## 四、Outlet 与嵌套层级
+## Outlet 与嵌套层级
 
 ```tsx
 function SettingsLayout() {
@@ -95,7 +95,7 @@ function SettingsLayout() {
 
 ---
 
-## 五、相对 Link
+## 相对 Link
 
 ```tsx
 // 在 /settings/profile 页面内
@@ -110,9 +110,9 @@ function SettingsLayout() {
 
 ---
 
-## 六、布局复用模式
+## 布局复用模式
 
-### 6.1 无 UI 的路径分组
+### 无 UI 的路径分组
 
 ```tsx
 {
@@ -132,9 +132,7 @@ function RequireAdmin() {
 }
 ```
 
-见 [04-路由鉴权与导航守卫](./04-路由鉴权与导航守卫.md)。
-
-### 6.2 多 Layout 切换
+### 多 Layout 切换
 
 ```tsx
 {
@@ -148,7 +146,7 @@ function RequireAdmin() {
 
 ---
 
-## 七、路由与菜单高亮
+## 路由与菜单高亮
 
 ```tsx
 <NavLink to="/settings/profile" end>资料</NavLink>
@@ -162,7 +160,7 @@ function RequireAdmin() {
 
 ---
 
-## 八、反模式
+## 反模式
 
 | ❌ | ✅ |
 |----|-----|
@@ -172,14 +170,10 @@ function RequireAdmin() {
 
 ---
 
-## 九、小结
+## 小结
 
-| 要点 | 说明 |
-|------|------|
-| children | 嵌套配置 |
-| Outlet | 子路由出口 |
-| index | 默认子页 |
-| Layout 分层 | 壳子与内容分离 |
+**嵌套路由**：父 Route 渲染 Layout，**`<Outlet />`** 渲染子页，壳子只 mount 一次。**index** 路由作为默认子页（如 `/` → Dashboard）。
 
-**上一篇**：[01-React-Router-v6基础](./01-React-Router-v6基础.md)  
-**下一篇**：[03-Data-Router与Loader-Action](./03-Data-Router与Loader-Action.md)
+**相对 Link** 在嵌套内简化路径；多级 Layout 逐层 Outlet。菜单高亮与 **NavLink**、路由 meta 同步；勿每页重复包 Layout。
+
+常见错因：侧栏 NavLink 是否应加 `end`？鉴权 Layout 是否用 Outlet 而非重复包每页？

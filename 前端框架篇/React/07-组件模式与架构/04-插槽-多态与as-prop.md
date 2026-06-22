@@ -1,10 +1,10 @@
 # 插槽、多态与 as prop
 
-> 设计组件 API 时，常要回答：**根元素用什么标签？** **样式怎么扩展？** **能否渲染成 Link？** `as` prop 与 **多态组件** 是 TypeScript + React 中的标准解法。
+同一套样式与逻辑，有时要渲染成 `button`、`a` 或 Router `Link`，**`as` prop** 解决多态根元素问题。配合 **variant**（cva + Tailwind）和具名 slot，可构建灵活可复用的组件库 API。
 
 ---
 
-## 一、as prop 模式
+## as prop 模式
 
 ```tsx
 type ButtonProps<E extends React.ElementType = 'button'> = {
@@ -49,7 +49,7 @@ flowchart LR
 
 ---
 
-## 二、TypeScript 多态组件
+## TypeScript 多态组件
 
 ```tsx
 type PolymorphicRef<E extends React.ElementType> =
@@ -65,7 +65,7 @@ type PolymorphicProps<E extends React.ElementType, P = {}> = P &
 
 ---
 
-## 三、Slot 组件（合并 props）
+## Slot 组件（合并 props）
 
 ```tsx
 import { Slot } from '@radix-ui/react-slot';
@@ -88,9 +88,7 @@ function Button({ asChild, ...props }: { asChild?: boolean } & React.ComponentPr
 
 ---
 
-## 四、插槽（具名 props）
-
-见 [03-Children与组合模式](../03-组件基础/03-Children与组合模式.md)：
+## 插槽（具名 props）
 
 ```tsx
 <Layout header={<Header />} sidebar={<Sidebar />}>
@@ -102,9 +100,11 @@ function Button({ asChild, ...props }: { asChild?: boolean } & React.ComponentPr
 |----------|-------------------------|
 | 默认槽 | 具名槽 |
 
+children 是默认插槽；header、sidebar 等具名 props 扩展布局，不必把所有内容塞进 children。
+
 ---
 
-## 五、variant 设计
+## variant 设计
 
 ```tsx
 const variants = {
@@ -130,7 +130,7 @@ const button = cva('btn', {
 
 ---
 
-## 六、反模式
+## 反模式
 
 | 反模式 | 问题 |
 |--------|------|
@@ -140,13 +140,10 @@ const button = cva('btn', {
 
 ---
 
-## 七、小结
+## 小结
 
-| 需求 | 方案 |
-|------|------|
-| 换标签 | `as` 或 `asChild` |
-| 多 variant | cva + Tailwind |
-| 布局槽 | children + 具名 props |
+**`as` prop** 让同一组件渲染为 button、a、Link 等，保持样式与行为一致。**TypeScript 多态**用 `ElementType` + 泛型约束 props 合并。
 
-**上一篇**：[03-HOC与Render-Props](./03-HOC与Render-Props.md)  
-**下一篇**：[05-特性目录与模块边界](./05-特性目录与模块边界.md)
+**variant** 用 cva + Tailwind 管理 size/color；具名 props 做多 slot。Radix **`asChild` + Slot** 合并 props 是 shadcn 常用高级模式。
+
+常见错因：是否用 div 模拟 button 导致 a11y 问题？boolean 组合是否应改为 `as` + variant？

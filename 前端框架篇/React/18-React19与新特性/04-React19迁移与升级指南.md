@@ -1,10 +1,10 @@
 # React 19 迁移与升级指南
 
-> 从 React 18 升到 **19** 多数项目**平滑**，重点在 **依赖兼容、类型、弃用 API 清理** 与 **Actions 渐进采纳**。
+从 React 18 升到 **19** 多数项目**平滑**，重点在 **依赖兼容、类型、弃用 API 清理** 与 **Actions 渐进采纳**。
 
 ---
 
-## 一、升级步骤
+## 升级步骤
 
 ```mermaid
 flowchart TD
@@ -23,9 +23,11 @@ pnpm test --run
 pnpm build
 ```
 
+先升包和类型，跑测试和构建绿，再修 peer 冲突，最后渐进采纳新特性。
+
 ---
 
-## 二、常见依赖问题
+## 常见依赖问题
 
 | 现象 | 处理 |
 |------|------|
@@ -36,7 +38,7 @@ pnpm build
 
 ---
 
-## 三、API 变更速查
+## API 变更速查
 
 | 变更 | 迁移 |
 |------|------|
@@ -48,7 +50,7 @@ pnpm build
 
 ---
 
-## 四、行为差异注意
+## 行为差异注意
 
 | 项 | 说明 |
 |----|------|
@@ -59,7 +61,7 @@ pnpm build
 
 ---
 
-## 五、渐进采纳 Actions
+## 渐进采纳 Actions
 
 | 阶段 | 做法 |
 |------|------|
@@ -71,33 +73,26 @@ pnpm build
 
 ---
 
-## 六、Compiler 启用
+## Compiler 启用
 
 1. 在 staging 开 Compiler  
 2. Profiler 对比核心页  
 3. 无回归再 production  
 
-见 [03-Compiler](./03-React-Compiler概览.md)。
-
 ---
 
-## 七、回滚策略
+## 回滚策略
 
 | | |
-|--|--|
+|，|，|
 | lockfile 锁 18 | |
 | 特性开关分 PR | |
 | 监控错误率 | |
 
 ---
 
-## 八、小结
+## 小结
 
-| 优先级 | |
-|--------|--|
-| 依赖与测试绿 | |
-| 新 API 按需采纳 | |
-| Compiler 可选 | |
+升 react 19 + @types，跑测试绿后再渐进采纳 Actions 和 Compiler；lockfile 锁版本便于回滚。
 
-**上一篇**：[03-React-Compiler概览](./03-React-Compiler概览.md)  
-**下一模块**：[19-跨端与集成](../19-跨端与集成/01-React-Native概览.md)
+升级步骤：react@19 + @types@19 → 测试 + 构建 → 修 peer 冲突 → 可选开 Compiler/Actions。常见问题：peer 警告、@types 冲突、Next.js 15+、测试库版本。API 变更：forwardRef 可选、useFormState→useActionState、defaultProps 弃用。行为差异：Strict Mode 双 effect、Suspense 微调、useId 前缀可能变。Actions 三阶段渐进采纳；Compiler staging 对比后启用。回滚：lockfile 锁版本、特性分 PR、监控错误率。

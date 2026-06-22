@@ -1,21 +1,16 @@
 # useMemo 与 useCallback
 
-> **`useMemo`** 缓存**计算结果**；**`useCallback`** 缓存**函数引用**。二者用于减少子组件无效重渲染或昂贵计算——但**不是**默认必写，滥用可能更慢。
+`React.memo` 靠 props 浅比较跳过子组件 render；若父每次传入**新函数/新对象**，memo 失效。`useCallback` / `useMemo` 用来稳定引用或缓存昂贵计算，但**先 Profiler 再优化**，别默认给每个组件加 memo。
 
 ---
 
-## 一、React.memo 回顾
+## React.memo 与稳定 props
 
 ```tsx
 const Child = memo(function Child({ onClick, label }: Props) {
-  console.log('Child render');
   return <button onClick={onClick}>{label}</button>;
 });
-```
 
-**props 浅比较**不变则跳过 render。若父每次传入**新函数**：
-
-```tsx
 function Parent() {
   const [n, setN] = useState(0);
   return <Child onClick={() => setN(n + 1)} label="+" />;
@@ -25,33 +20,28 @@ function Parent() {
 
 ---
 
-## 二、useCallback
+## useCallback
 
 ```tsx
-function Parent() {
-  const [n, setN] = useState(0);
-  const handleClick = useCallback(() => {
-    setN(c => c + 1);
-  }, []);
+const handleClick = useCallback(() => {
+  setN(c => c + 1);
+}, []);
 
-  return <Child onClick={handleClick} label="+" />;
-}
+return <Child onClick={handleClick} label="+" />;
 ```
 
 | 签名 | `useCallback(fn, deps)` |
 |------|-------------------------|
 | 等价 | `useMemo(() => fn, deps)` |
 
-**deps 变了** → 新函数引用。
+deps 变了 → 新函数引用。
 
 ---
 
-## 三、useMemo
+## useMemo
 
 ```tsx
-const sorted = useMemo(() => {
-  return heavySort(items);
-}, [items]);
+const sorted = useMemo(() => heavySort(items), [items]);
 
 const chartOptions = useMemo(() => ({
   data: items,
@@ -59,19 +49,16 @@ const chartOptions = useMemo(() => ({
 }), [items, theme.primary]);
 ```
 
-| 用途 | 说明 |
-|------|------|
-| 昂贵计算 | 排序、大列表过滤 |
-| 稳定引用 | 对象/数组传给 memo 子组件或 effect deps |
+昂贵计算、或稳定对象/数组传给 memo 子组件或 effect deps。
 
 ---
 
-## 四、何时需要、何时不需要
+## 何时需要、何时不需要
 
 ```mermaid
 flowchart TD
   Start[考虑优化]
-  Start --> P{Profiler 证明子组件多余 render?}
+  Start --> P{Profiler 证明多余 render?}
   P -->|否| Skip[不要 memo/callback]
   P -->|是| Q{props 是新函数/对象?}
   Q -->|是| UC[useCallback / useMemo]
@@ -83,44 +70,31 @@ flowchart TD
 
 | 通常**不需要** | 通常**值得考虑** |
 |----------------|------------------|
-| 小组件、列表不长 | 虚拟列表行组件 memo |
-| props 本就稳定 | 大表格 Cell、图表 |
+| 小组件、列表不长 | 虚拟列表行、大表格 Cell |
+| props 本就稳定 | 图表重绘 |
 | 过早优化 | effect 依赖大对象 |
 
-**React Compiler**（19 生态）目标自动插入 memo，见 [18-Compiler](../18-React19与新特性/03-React-Compiler概览.md)。
+React Compiler 目标自动插入 memo，未全面推广前热点仍按 18 方式显式优化。
 
 ---
 
-## 五、常见误用
-
-### 5.1 包 everything
+## 常见误用
 
 ```tsx
-// ❌ 每个 render 仍要比较 deps，函数也占内存
-const onClick = useCallback(() => ..., [a, b, c, d, e]);
-```
-
-### 5.2 useMemo 做「派生 state」
-
-```tsx
-// ❌ 能直接算
+// ❌ 简单拼接不必 useMemo
 const fullName = useMemo(() => `${first} ${last}`, [first, last]);
-
 // ✅
 const fullName = `${first} ${last}`;
+
+// ❌ deps 不全 → 闭包旧 count
+const fn = useCallback(() => console.log(count), []);
 ```
 
-### 5.3 deps 不全
-
-```tsx
-const fn = useCallback(() => {
-  console.log(count); // 闭包旧 count
-}, []); // eslint 会警告
-```
+Context value 变化仍会穿透 memo，需拆分或 selector。
 
 ---
 
-## 六、与 Context、列表配合
+## 列表 + memo 示例
 
 ```tsx
 const Row = memo(function Row({ item, onSelect }: RowProps) {
@@ -128,10 +102,7 @@ const Row = memo(function Row({ item, onSelect }: RowProps) {
 });
 
 function Table({ items }: { items: Item[] }) {
-  const onSelect = useCallback((id: string) => {
-    ...
-  }, [/* 稳定依赖 */]);
-
+  const onSelect = useCallback((id: string) => { ... }, [/* 稳定依赖 */]);
   return items.map(item => (
     <Row key={item.id} item={item} onSelect={onSelect} />
   ));
@@ -140,23 +111,25 @@ function Table({ items }: { items: Item[] }) {
 
 ---
 
-## 七、useMemo vs useCallback 对照
+## useMemo vs useCallback
 
 | | useMemo | useCallback |
 |---|---------|-------------|
-| 返回 | 任意类型的**值** | **函数** |
-| 典型 | 计算结果、对象 | 事件 handler、回调 props |
+| 返回 | 任意**值** | **函数** |
+| 典型 | 计算结果、对象 | 事件 handler |
 
 ---
 
-## 八、小结
+## 小结
 
-| 原则 | 说明 |
-|------|------|
-| 先测量 | React DevTools Profiler |
-| 稳定引用 | 为 memo 子组件服务 |
-| 派生简单 | 直接算，不 useMemo |
-| Compiler 未来 | 减手动 memo |
+**先 Profiler**，再 memo；简单派生直接算，不必 useMemo。
 
-**上一篇**：[04-useContext与跨层通信](./04-useContext与跨层通信.md)  
-**下一篇**：[06-useId-useSyncExternalStore等](./06-useId-useSyncExternalStore等.md)
+**useCallback** 稳定传给 memo 子的函数；**useMemo** 缓存贵计算或大对象引用。
+
+**过度 memo** 增加 deps 比较成本；Compiler 未来可减手写。
+
+**Context** 变会穿透 memo；列表行 memo + 稳定 onSelect 是常见组合。
+
+**易混点**：useMemo 包 `${a}${b}`；useCallback deps 漏变量闭包旧值。
+
+常见错因：Profiler 证明有多余 render 吗？deps 是否每次是新对象？

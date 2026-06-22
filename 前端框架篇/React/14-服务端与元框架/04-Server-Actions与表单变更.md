@@ -1,10 +1,10 @@
 # Server Actions 与表单变更
 
-> **Server Actions** 是跑在服务端的异步函数，可从表单或事件调用，用于 **mutation** 而不必手写 `fetch` API Route。React 19 起与 **useActionState** 等深度集成。
+**Server Actions** 是跑在服务端的异步函数，可从表单或事件调用，用于 **mutation** 而不必手写 `fetch` API Route。React 19 起与 **useActionState** 等深度集成。
 
 ---
 
-## 一、是什么？
+## 是什么
 
 ```mermaid
 flowchart LR
@@ -20,9 +20,11 @@ flowchart LR
 | 调用 | fetch | 框架序列化调用 |
 | 类型 | 需手写 | 端到端 TS（Next 等） |
 
+Server Action 把 mutation 变成一等公民，框架负责序列化调用和类型传递，不必单独写 API Route + fetch。
+
 ---
 
-## 二、Next.js App Router 示例
+## Next.js App Router 示例
 
 ```tsx
 // app/actions.ts
@@ -68,9 +70,11 @@ export function CreateForm() {
 | `useActionState` | pending + 返回 state |
 | `revalidatePath` | 刷新 RSC 缓存 |
 
+`'use server'` 标记服务端函数；`useActionState` 管理 pending 和返回 state；`revalidatePath` 刷新 RSC 缓存让列表更新。
+
 ---
 
-## 三、与 React 19 Actions
+## 与 React 19 Actions
 
 React 19 原生 `<form action={fn}>`：
 
@@ -83,13 +87,11 @@ async function submit(formData: FormData) {
 <form action={submit}>...</form>
 ```
 
-`useFormStatus` 读 pending（在 form 子组件内）。
-
-见 [18-React19](../18-React19与新特性/02-Actions与useActionState.md)。
+`useFormStatus` 读 pending（在 form 子组件内）。React 19 把 form action 和 Server Action 深度集成，pending 状态用 useFormStatus 读取。
 
 ---
 
-## 四、安全
+## 安全
 
 | 项 | 必须 |
 |----|------|
@@ -107,9 +109,11 @@ export async function deleteUser(id: string) {
 }
 ```
 
+Server Action 是公开端点，必须在 action 内做鉴权和输入校验，不能假设调用方可信。
+
 ---
 
-## 五、与 TanStack Query
+## 与 TanStack Query
 
 | 场景 | 方案 |
 |------|------|
@@ -117,22 +121,18 @@ export async function deleteUser(id: string) {
 | 重客户端交互 | Query mutation 仍可用 |
 | 混合 | Action 写 + invalidate Query |
 
----
-
-## 六、progressive enhancement
-
-无 JS 时原生 form POST 仍可工作（Server Action 设计目标之一），利于 a11y 与弱网。
+全 RSC 应用用 Action + revalidate 刷新；重客户端交互仍可用 Query mutation；混合场景 Action 写完后 invalidate Query。
 
 ---
 
-## 七、小结
+## Progressive enhancement
 
-| 要点 | |
-|------|--|
-| 服务端 mutation | |
-| 表单 action 绑定 | |
-| revalidate 刷新 UI | |
-| 鉴权不可省 | |
+无 JS 时原生 form POST 仍可工作（Server Action 设计目标之一），利于 a11y 与弱网。form action 绑定 Server Action，不依赖客户端 JS 也能提交。
 
-**上一篇**：[03-React-Server-Components](./03-React-Server-Components.md)  
-**下一篇**：[05-Nextjs-App-Router架构](./05-Nextjs-App-Router架构.md)
+---
+
+## 小结
+
+Server Actions 把 mutation 变成一等公民；鉴权与校验不可省，revalidate 刷新 RSC 缓存。
+
+Server Action 是跑在服务端的异步函数，用 `'use server'` 标记，框架序列化调用，替代 REST API Route + fetch。Next.js 示例：action 读 FormData、写 DB、revalidatePath；Client 表单用 useActionState 管理 pending 和 error。React 19 原生 form action + useFormStatus。安全不可省：action 内鉴权、zod 校验、框架 CSRF token、幂等处理。与 Query 混合：全 RSC 用 revalidate，重交互用 Query mutation，或 Action 写 + invalidate Query。支持 progressive enhancement，无 JS 也能 form POST。
